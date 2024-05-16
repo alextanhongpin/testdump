@@ -1,0 +1,17 @@
+-- request.http --
+GET / HTTP/1.1
+Host: example.com
+Content-Length: 47
+Content-Type: application/json
+
+{
+ "createdAt": "2024-05-17T02:50:36+08:00"
+}
+
+-- response.http --
+HTTP/1.1 200 OK
+Connection: close
+
+{
+ "id": 13
+}

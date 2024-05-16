@@ -1,0 +1,18 @@
+-- request.http --
+GET / HTTP/1.1
+Host: example.com
+Content-Length: 67
+Content-Type: application/json
+
+{
+ "email": "john.appleseed@mail.com",
+ "password": "12345678"
+}
+
+-- response.http --
+HTTP/1.1 200 OK
+Connection: close
+
+{
+ "Error": "bad request"
+}

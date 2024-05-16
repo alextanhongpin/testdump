@@ -1,0 +1,100 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_OUTPUT_EXCMD	mixed	/number, pattern, mixed, or combineV2/
+!_TAG_OUTPUT_FILESEP	slash	/slash or backslash/
+!_TAG_OUTPUT_MODE	u-ctags	/u-ctags or e-ctags/
+!_TAG_PATTERN_LENGTH_LIMIT	96	/0 for no limit/
+!_TAG_PROC_CWD	/Users/alextanhongpin/Documents/golang/src/github.com/alextanhongpin/dump/	//
+!_TAG_PROGRAM_AUTHOR	Universal Ctags Team	//
+!_TAG_PROGRAM_NAME	Universal Ctags	/Derived from Exuberant Ctags/
+!_TAG_PROGRAM_URL	https://ctags.io/	/official site/
+!_TAG_PROGRAM_VERSION	5.9.0	/p5.9.20210516.0/
+ANSIDiff	http/diff.go	/^func ANSIDiff(x, y any, opts ...cmp.Option) error {$/;"	f	package:http	typeref:typename:error
+Ansi	http/diff.go	/^func (d *DiffError) Ansi() string {$/;"	f	struct:http.DiffError	typeref:typename:string
+Body	http/dump.go	/^	Body    any         `json:"body"`$/;"	m	struct:http.Dump	typeref:typename:any
+Body	http/http.go	/^	Body    []cmp.Option$/;"	m	struct:http.Comparer	typeref:typename:[]cmp.Option
+ChainInterceptor	http/interceptor.go	/^type ChainInterceptor[T any] []Interceptor[T]$/;"	t	package:http	typeref:typename:[T any] []Interceptor
+Comparer	http/http.go	/^type Comparer struct {$/;"	s	package:http
+DiffError	http/diff.go	/^type DiffError struct {$/;"	s	package:http
+Dump	http/dump.go	/^type Dump struct {$/;"	s	package:http
+DumpRequest	http/request.go	/^func DumpRequest(r *http.Request) (*Dump, error) {$/;"	f	package:http	typeref:typename:(*Dump, error)
+DumpRequest	http/rqeuest.go	/^func DumpRequest(r *http.Request) ([]byte, error) {$/;"	f	package:http	typeref:typename:([]byte, error)
+DumpResponse	http/response.go	/^func DumpResponse(r *http.Response) (*Dump, error) {$/;"	f	package:http	typeref:typename:(*Dump, error)
+Error	http/diff.go	/^func (d *DiffError) Error() string {$/;"	f	struct:http.DiffError	typeref:typename:string
+FromRequest	http/rqeuest.go	/^func FromRequest(r *http.Request) (*Dump, error) {$/;"	f	package:http	typeref:typename:(*Dump, error)
+Handler	http/http.go	/^type Handler struct {$/;"	s	package:http
+Handler	http/main.go	/^type Handler struct {$/;"	s	package:http
+Header	http/dump.go	/^	Header  http.Header `json:"header"`$/;"	m	struct:http.Dump	typeref:typename:http.Header
+Header	http/http.go	/^	Header  []cmp.Option$/;"	m	struct:http.Comparer	typeref:typename:[]cmp.Option
+IgnoreMapEntries	http/http_test.go	/^func IgnoreMapEntries(keys ...string) cmp.Option {$/;"	f	package:http_test	typeref:typename:cmp.Option
+Intercept	http/interceptor.go	/^func (c ChainInterceptor[T]) Intercept(v T) error {$/;"	f	unknown:http.T	typeref:typename:error
+Interceptor	http/interceptor.go	/^type Interceptor[T any] interface {$/;"	t	package:http	typeref:typename:[T any] interface { Intercept(T) error;}
+Line	http/dump.go	/^	Line    string      `json:"line"`$/;"	m	struct:http.Dump	typeref:typename:string
+NewHandler	http/http.go	/^func NewHandler(t *testing.T, h http.Handler) *Handler {$/;"	f	package:http	typeref:typename:*Handler
+Read	http/dump.go	/^func Read(b []byte) (w *http.Response, r *http.Request, err error) {$/;"	f	package:http	typeref:typename:(w *http.Response, r *http.Request, err error)
+ReadRequest	http/request.go	/^func ReadRequest(b []byte) (*http.Request, error) {$/;"	f	package:http	typeref:typename:(*http.Request, error)
+ReadRequest	http/rqeuest.go	/^func ReadRequest(b []byte) (*http.Request, error) {$/;"	f	package:http	typeref:typename:(*http.Request, error)
+ReadResponse	http/response.go	/^func ReadResponse(b []byte) (*http.Response, error) {$/;"	f	package:http	typeref:typename:(*http.Response, error)
+Request	http/http.go	/^	Request          RequestInterceptor$/;"	m	struct:http.Handler	typeref:typename:RequestInterceptor
+RequestComparer	http/http.go	/^	RequestComparer  Comparer$/;"	m	struct:http.Handler	typeref:typename:Comparer
+RequestInterceptor	http/http.go	/^type RequestInterceptor Interceptor[*http.Request]$/;"	t	package:http	typeref:typename:Interceptor
+Response	http/http.go	/^	Response         ResponseInterceptor$/;"	m	struct:http.Handler	typeref:typename:ResponseInterceptor
+ResponseComparer	http/http.go	/^	ResponseComparer Comparer$/;"	m	struct:http.Handler	typeref:typename:Comparer
+ResponseInterceptor	http/http.go	/^type ResponseInterceptor Interceptor[*http.Response]$/;"	t	package:http	typeref:typename:Interceptor
+ResponseWriter	http/main.go	/^	http.ResponseWriter$/;"	M	struct:http.responseWriter	typeref:typename:http.ResponseWriter
+ServeHTTP	http/http.go	/^func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {$/;"	f	struct:http.Handler
+ServeHTTP	http/main.go	/^func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {$/;"	f	struct:http.Handler
+SetColor	http/diff.go	/^func (d *DiffError) SetColor(color bool) {$/;"	f	struct:http.DiffError
+TestDump	http/http_test.go	/^func TestDump(t *testing.T) {$/;"	f	package:http_test
+TestJSON	http/http_test.go	/^func TestJSON(t *testing.T) {$/;"	f	package:http_test
+TestJSONCreate	http/http_test.go	/^func TestJSONCreate(t *testing.T) {$/;"	f	package:http_test
+Text	http/diff.go	/^func (d *DiffError) Text() string {$/;"	f	struct:http.DiffError	typeref:typename:string
+Trailer	http/dump.go	/^	Trailer http.Header `json:"trailer"`$/;"	m	struct:http.Dump	typeref:typename:http.Header
+Trailer	http/http.go	/^	Trailer []cmp.Option$/;"	m	struct:http.Comparer	typeref:typename:[]cmp.Option
+Write	http/dump.go	/^func Write(w *http.Response, r *http.Request) ([]byte, error) {$/;"	f	package:http	typeref:typename:([]byte, error)
+Write	http/main.go	/^func (w *responseWriter) Write(b []byte) (int, error) {$/;"	f	struct:http.responseWriter	typeref:typename:(int, error)
+WriteFile	http/fs.go	/^func WriteFile(name string, body []byte, overwrite bool) error {$/;"	f	package:http	typeref:typename:error
+WriteRequest	http/request.go	/^func WriteRequest(r *http.Request) ([]byte, error) {$/;"	f	package:http	typeref:typename:([]byte, error)
+WriteResponse	http/response.go	/^func WriteResponse(r *http.Response) ([]byte, error) {$/;"	f	package:http	typeref:typename:([]byte, error)
+ansi	http/diff.go	/^	ansi  string$/;"	m	struct:http.DiffError	typeref:typename:string
+ansiDiff	http/diff.go	/^func ansiDiff(diff string) string {$/;"	f	package:http	typeref:typename:string
+b	http/main.go	/^	b []byte$/;"	m	struct:http.responseWriter	typeref:typename:[]byte
+bytesPretty	http/transform.go	/^func bytesPretty(b []byte) ([]byte, error) {$/;"	f	package:http	typeref:typename:([]byte, error)
+color	http/diff.go	/^	color bool$/;"	m	struct:http.DiffError	typeref:typename:bool
+color	http/diff.go	/^func color(code int, s string) string {$/;"	f	package:http	typeref:typename:string
+compare	http/http.go	/^func (h *Handler) compare(requestOrResponse string, snapshot, received *Dump) error {$/;"	f	struct:http.Handler	typeref:typename:error
+denormalize	http/transform.go	/^func denormalize(b []byte) []byte {$/;"	f	package:http	typeref:typename:[]byte
+dump	http/http.go	/^func (h *Handler) dump(w *http.Response, r *http.Request) error {$/;"	f	struct:http.Handler	typeref:typename:error
+dumphttp	http/http_test.go	/^	dumphttp "github.com\/alextanhongpin\/dump\/http"$/;"	P	package:github.com/alextanhongpin/dump/http
+escapeCode	http/diff.go	/^func escapeCode(code int) string {$/;"	f	package:http	typeref:typename:string
+formatRequestLine	http/request.go	/^func formatRequestLine(req *http.Request) string {$/;"	f	package:http	typeref:typename:string
+formatRequestLine	http/rqeuest.go	/^func formatRequestLine(req *http.Request) string {$/;"	f	package:http	typeref:typename:string
+formatResponseLine	http/response.go	/^func formatResponseLine(r *http.Response) string {$/;"	f	package:http	typeref:typename:string
+green	http/diff.go	/^func green(s string) string {$/;"	f	package:http	typeref:typename:string
+h	http/http.go	/^	h                http.Handler$/;"	m	struct:http.Handler	typeref:typename:http.Handler
+h	http/main.go	/^	h http.Handler$/;"	m	struct:http.Handler	typeref:typename:http.Handler
+http	http/diff.go	/^package http$/;"	p
+http	http/dump.go	/^package http$/;"	p
+http	http/fs.go	/^package http$/;"	p
+http	http/http.go	/^package http$/;"	p
+http	http/interceptor.go	/^package http$/;"	p
+http	http/main.go	/^package http$/;"	p
+http	http/request.go	/^package http$/;"	p
+http	http/response.go	/^package http$/;"	p
+http	http/rqeuest.go	/^package http$/;"	p
+http	http/transform.go	/^package http$/;"	p
+http_test	http/http_test.go	/^package http_test$/;"	p
+init	http/main.go	/^func init() {$/;"	f	package:http
+normalize	http/transform.go	/^func normalize(b []byte) []byte {$/;"	f	package:http	typeref:typename:[]byte
+normalizeRequest	http/request.go	/^func normalizeRequest(r *http.Request) (*http.Request, error) {$/;"	f	package:http	typeref:typename:(*http.Request, error)
+normalizeRequest	http/rqeuest.go	/^func normalizeRequest(r *http.Request) (*http.Request, error) {$/;"	f	package:http	typeref:typename:(*http.Request, error)
+normalizeResponse	http/response.go	/^func normalizeResponse(res *http.Response) (*http.Response, error) {$/;"	f	package:http	typeref:typename:(*http.Response, error)
+red	http/diff.go	/^func red(s string) string {$/;"	f	package:http	typeref:typename:string
+requestFile	http/dump.go	/^const requestFile = "request.http"$/;"	c	package:http
+requestToDump	http/rqeuest.go	/^func requestToDump(r *http.Request) (*Dump, error) {$/;"	f	package:http	typeref:typename:(*Dump, error)
+responseFile	http/dump.go	/^const responseFile = "response.http"$/;"	c	package:http
+responseWriter	http/main.go	/^type responseWriter struct {$/;"	s	package:http
+t	http/http.go	/^	t                *testing.T$/;"	m	struct:http.Handler	typeref:typename:*testing.T
+text	http/diff.go	/^	text  string$/;"	m	struct:http.DiffError	typeref:typename:string
+textDiff	http/diff.go	/^func textDiff(diff string) string {$/;"	f	package:http	typeref:typename:string
+valueOrDefault	http/rqeuest.go	/^func valueOrDefault(v, d string) string {$/;"	f	package:http	typeref:typename:string

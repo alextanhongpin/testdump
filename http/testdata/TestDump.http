@@ -1,0 +1,9 @@
+-- request.http --
+GET / HTTP/1.1
+Host: example.com
+
+-- response.http --
+HTTP/1.1 200 OK
+Connection: close
+
+Hello, World!
