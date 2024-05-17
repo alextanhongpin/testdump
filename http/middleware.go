@@ -1,8 +1,13 @@
 package http
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+
+	"github.com/alextanhongpin/dump/pkg/reviver"
 )
 
 type Middleware func(w *http.Response, r *http.Request) error
@@ -32,6 +37,72 @@ func MaskResponseHeader(mask string, fields ...string) Middleware {
 
 			w.Header.Set(field, mask)
 		}
+
+		return nil
+	}
+}
+
+func MaskRequestBody(mask string, fields ...string) Middleware {
+	return func(w *http.Response, r *http.Request) error {
+		defer r.Body.Close()
+
+		b, err := io.ReadAll(r.Body)
+		if err != nil {
+			return err
+		}
+
+		a, err := reviver.Unmarshal(b, func(root, key string, val any) (any, error) {
+			for _, f := range fields {
+				if f == key {
+					return mask, nil
+				}
+			}
+
+			return val, nil
+		})
+
+		if err != nil {
+			return err
+		}
+
+		b, err = json.Marshal(a)
+		if err != nil {
+			return err
+		}
+		r.Body = io.NopCloser(bytes.NewReader(b))
+
+		return nil
+	}
+}
+
+func MaskResponseBody(mask string, fields ...string) Middleware {
+	return func(w *http.Response, r *http.Request) error {
+		defer w.Body.Close()
+
+		b, err := io.ReadAll(w.Body)
+		if err != nil {
+			return err
+		}
+
+		a, err := reviver.Unmarshal(b, func(root, key string, val any) (any, error) {
+			for _, f := range fields {
+				if f == key {
+					return mask, nil
+				}
+			}
+
+			return val, nil
+		})
+
+		if err != nil {
+			return err
+		}
+
+		b, err = json.Marshal(a)
+		if err != nil {
+			return err
+		}
+		w.Body = io.NopCloser(bytes.NewReader(b))
 
 		return nil
 	}

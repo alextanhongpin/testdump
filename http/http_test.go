@@ -180,9 +180,11 @@ func TestMiddlewareChain(t *testing.T) {
 	})
 }
 
-// TestHTTP shows an example of testing HTML element using goquery library.
-// Suitable for handlers that returns HTMl, especially HTMX.
-func TestHTTP(t *testing.T) {
+// TestHTML shows an example of testing HTML element using
+// goquery library.
+// Suitable for handlers that returns HTMl, especially
+// HTMX.
+func TestHTML(t *testing.T) {
 	h := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 		fmt.Fprint(w, `<div>
@@ -232,5 +234,63 @@ func TestHTTP(t *testing.T) {
 				t.Errorf("want %s, got %s", "password", n)
 			}
 		})
+	})
+}
+
+func TestMask(t *testing.T) {
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		type response struct {
+			AccessToken string `json:"accessToken"`
+			ExpiresIn   string `json:"expiresIn"`
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response{
+			AccessToken: "secret token",
+			ExpiresIn:   (5 * time.Second).String(),
+		})
+	})
+
+	wr := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/", bytes.NewReader([]byte(`{"email":"john.appleseed@mail.com", "password": "12345678"}`)))
+	r.Header.Set("Content-Type", "application/json")
+
+	mw := []httpdump.Middleware{
+		httpdump.MaskRequestBody("[REDACTED]", "password"),
+		httpdump.MaskResponseBody("[REDACTED]", "accessToken"),
+	}
+	hd := httpdump.NewHandler(t, h, mw...)
+	hd.ServeHTTP(wr, r)
+
+	t.Run("original request is preserved", func(t *testing.T) {
+		defer r.Body.Close()
+		b, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		want := `{"email":"john.appleseed@mail.com", "password": "12345678"}`
+		got := string(bytes.TrimSpace(b))
+		if want != got {
+			t.Errorf("want %s, got %s", want, got)
+		}
+	})
+
+	t.Run("original response is preserved", func(t *testing.T) {
+		w := wr.Result()
+		if w.StatusCode != http.StatusBadRequest {
+			t.Errorf("want %d, got %d", http.StatusBadRequest, w.StatusCode)
+		}
+		defer w.Body.Close()
+		b, err := io.ReadAll(w.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		want := `{"accessToken":"secret token","expiresIn":"5s"}`
+		got := string(bytes.TrimSpace(b))
+		if want != got {
+			t.Errorf("want %s, got %s", want, got)
+		}
 	})
 }
