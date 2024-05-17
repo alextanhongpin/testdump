@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"cmp"
 	"fmt"
 	"io"
 	"io/fs"
@@ -76,35 +77,13 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) dump(w *http.Response, r *http.Request) error {
-	t := h.t
-	t.Helper()
-
-	rc, err := internal.CloneRequest(r)
+	wc, rc, err := h.apply(w, r)
 	if err != nil {
 		return err
 	}
 
-	wc, err := internal.CloneResponse(w)
-	if err != nil {
-		return err
-	}
-
-	for _, m := range h.Middlewares {
-		if err := m(wc, rc); err != nil {
-			return err
-		}
-	}
-
-	// comparators
-	// do something with rb and wb
-	// write response
-	src, err := Write(wc, rc)
-	if err != nil {
-		return err
-	}
-
-	file := fmt.Sprintf("testdata/%s.http", t.Name())
-	written, err := internal.WriteFile(file, src, false)
+	file := fmt.Sprintf("testdata/%s.http", h.t.Name())
+	written, err := h.write(file, wc, rc)
 	if err != nil {
 		return err
 	}
@@ -114,64 +93,93 @@ func (h *Handler) dump(w *http.Response, r *http.Request) error {
 		return nil
 	}
 
+	ww, rr, err := h.read(file)
+	if err != nil {
+		return err
+	}
+
+	return cmp.Or(
+		h.compareRequest(rc, rr),
+		h.compareResponse(wc, ww),
+	)
+}
+
+// apply applies the middleware, cloning the request/response in the process.
+func (h *Handler) apply(w *http.Response, r *http.Request) (*http.Response, *http.Request, error) {
+	wc, err := internal.CloneResponse(w)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	rc, err := internal.CloneRequest(r)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for _, m := range h.Middlewares {
+		if err := m(wc, rc); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return wc, rc, nil
+}
+
+func (h *Handler) write(file string, wc *http.Response, rc *http.Request) (bool, error) {
+	src, err := Write(wc, rc)
+	if err != nil {
+		return false, err
+	}
+
+	return internal.WriteFile(file, src, false)
+}
+
+func (h *Handler) read(file string) (*http.Response, *http.Request, error) {
 	var tgt []byte
+	var err error
 	if h.FS != nil {
 		tgt, err = fs.ReadFile(h.FS, file)
 	} else {
 		tgt, err = os.ReadFile(file)
 	}
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	ww, rr, err := Read(tgt)
+	return Read(tgt)
+}
+
+func (h *Handler) compareRequest(s, t *http.Request) error {
+	lhs, err := NewRequestDump(s)
 	if err != nil {
 		return err
 	}
 
-	{
-		// compare request
-		lhs, err := NewRequestDump(rc)
-		if err != nil {
-			return err
-		}
-
-		rhs, err := NewRequestDump(rr)
-		if err != nil {
-			return err
-		}
-
-		if err := h.compare("request", lhs, rhs); err != nil {
-			return fmt.Errorf("Request %w", err)
-		}
+	rhs, err := NewRequestDump(t)
+	if err != nil {
+		return err
 	}
 
-	{
-		// compare response
-		lhs, err := NewResponseDump(wc)
-		if err != nil {
-			return err
-		}
-
-		rhs, err := NewResponseDump(ww)
-		if err != nil {
-			return err
-		}
-
-		if err := h.compare("response", lhs, rhs); err != nil {
-			return fmt.Errorf("Response %w", err)
-		}
+	if err := lhs.Compare(rhs, h.RequestComparer); err != nil {
+		return fmt.Errorf("Request %w", err)
 	}
-
 	return nil
 }
 
-func (h *Handler) compare(requestOrResponse string, snapshot, received *Dump) error {
-	x := snapshot
-	y := received
-	c := h.ResponseComparer
-	if requestOrResponse == "request" {
-		c = h.RequestComparer
+func (h *Handler) compareResponse(s, t *http.Response) error {
+	lhs, err := NewResponseDump(s)
+	if err != nil {
+		return err
 	}
-	return x.Compare(y, c)
+
+	rhs, err := NewResponseDump(t)
+	if err != nil {
+		return err
+	}
+
+	if err := lhs.Compare(rhs, h.ResponseComparer); err != nil {
+		return fmt.Errorf("Response %w", err)
+	}
+
+	return nil
 }
