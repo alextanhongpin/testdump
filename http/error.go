@@ -8,29 +8,16 @@ import (
 )
 
 type DiffError struct {
-	ansi  string
-	text  string
-	color bool
+	Diff string
+	ANSI bool
 }
 
 func (d *DiffError) Error() string {
-	if d.color {
-		return d.ansi
+	if d.ANSI {
+		return ansiDiff(d.Diff)
 	}
 
-	return d.text
-}
-
-func (d *DiffError) Ansi() string {
-	return d.ansi
-}
-
-func (d *DiffError) Text() string {
-	return d.text
-}
-
-func (d *DiffError) SetColor(color bool) {
-	d.color = color
+	return textDiff(d.Diff)
 }
 
 func ANSIDiff(x, y any, opts ...cmp.Option) error {
@@ -40,9 +27,8 @@ func ANSIDiff(x, y any, opts ...cmp.Option) error {
 	}
 
 	return &DiffError{
-		ansi:  ansiDiff(diff),
-		text:  textDiff(diff),
-		color: true,
+		Diff: diff,
+		ANSI: true,
 	}
 }
 

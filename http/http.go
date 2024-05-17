@@ -4,34 +4,42 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/alextanhongpin/dump/http/internal"
 )
-
-type RequestInterceptor Interceptor[*http.Request]
-type ResponseInterceptor Interceptor[*http.Response]
 
 type Handler struct {
 	t                *testing.T
 	h                http.Handler
-	Request          RequestInterceptor
-	Response         ResponseInterceptor
-	RequestComparer  Comparer
-	ResponseComparer Comparer
+	Middlewares      []Middleware
+	RequestComparer  *CompareOption
+	ResponseComparer *CompareOption
+	FS               fs.FS
 }
 
-type Comparer struct {
-	Header  []cmp.Option
-	Body    []cmp.Option
-	Trailer []cmp.Option
+func NewHandler(t *testing.T, h http.Handler, middlewares ...Middleware) *Handler {
+	return &Handler{
+		t:                t,
+		h:                h,
+		Middlewares:      middlewares,
+		RequestComparer:  new(CompareOption),
+		ResponseComparer: new(CompareOption),
+	}
 }
 
-func NewHandler(t *testing.T, h http.Handler) *Handler {
-	return &Handler{t: t, h: h}
+func NewHandlerFunc(t *testing.T, h http.HandlerFunc, middlewares ...Middleware) *Handler {
+	return &Handler{
+		t:                t,
+		h:                http.HandlerFunc(h),
+		Middlewares:      middlewares,
+		RequestComparer:  new(CompareOption),
+		ResponseComparer: new(CompareOption),
+	}
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -62,9 +70,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Reset the request.
 	r.Body = io.NopCloser(bytes.NewReader(rb))
 
-	_ = rb // pipe requests
-	//_ = wb // pipe response
-
 	if err := h.dump(wr.Result(), r); err != nil {
 		t.Fatal(err)
 	}
@@ -73,20 +78,48 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) dump(w *http.Response, r *http.Request) error {
 	t := h.t
 	t.Helper()
+
+	rc, err := internal.CloneRequest(r)
+	if err != nil {
+		return err
+	}
+
+	wc, err := internal.CloneResponse(w)
+	if err != nil {
+		return err
+	}
+
+	for _, m := range h.Middlewares {
+		if err := m(wc, rc); err != nil {
+			return err
+		}
+	}
+
 	// comparators
 	// do something with rb and wb
 	// write response
-	src, err := Write(w, r)
+	src, err := Write(wc, rc)
 	if err != nil {
 		return err
 	}
 
 	file := fmt.Sprintf("testdata/%s.http", t.Name())
-	if err := WriteFile(file, src, false); err != nil {
+	written, err := internal.WriteFile(file, src, false)
+	if err != nil {
 		return err
 	}
 
-	tgt, err := os.ReadFile(file)
+	// First write, there's nothing to compare.
+	if written {
+		return nil
+	}
+
+	var tgt []byte
+	if h.FS != nil {
+		tgt, err = fs.ReadFile(h.FS, file)
+	} else {
+		tgt, err = os.ReadFile(file)
+	}
 	if err != nil {
 		return err
 	}
@@ -98,12 +131,12 @@ func (h *Handler) dump(w *http.Response, r *http.Request) error {
 
 	{
 		// compare request
-		lhs, err := DumpRequest(r)
+		lhs, err := NewRequestDump(rc)
 		if err != nil {
 			return err
 		}
 
-		rhs, err := DumpRequest(rr)
+		rhs, err := NewRequestDump(rr)
 		if err != nil {
 			return err
 		}
@@ -115,12 +148,12 @@ func (h *Handler) dump(w *http.Response, r *http.Request) error {
 
 	{
 		// compare response
-		lhs, err := DumpResponse(w)
+		lhs, err := NewResponseDump(wc)
 		if err != nil {
 			return err
 		}
 
-		rhs, err := DumpResponse(ww)
+		rhs, err := NewResponseDump(ww)
 		if err != nil {
 			return err
 		}
@@ -140,22 +173,5 @@ func (h *Handler) compare(requestOrResponse string, snapshot, received *Dump) er
 	if requestOrResponse == "request" {
 		c = h.RequestComparer
 	}
-
-	if err := ANSIDiff(x.Line, y.Line); err != nil {
-		return fmt.Errorf("Line: %w", err)
-	}
-
-	if err := ANSIDiff(x.Body, y.Body, c.Body...); err != nil {
-		return fmt.Errorf("Body: %w", err)
-	}
-
-	if err := ANSIDiff(x.Header, y.Header, c.Header...); err != nil {
-		return fmt.Errorf("Header: %w", err)
-	}
-
-	if err := ANSIDiff(x.Trailer, y.Trailer, c.Trailer...); err != nil {
-		return fmt.Errorf("Trailer: %w", err)
-	}
-
-	return nil
+	return x.Compare(y, c)
 }

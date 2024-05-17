@@ -1,9 +1,11 @@
 -- request.http --
 GET / HTTP/1.1
 Host: example.com
+Content-Type: [TWO]
 
 -- response.http --
 HTTP/1.1 200 OK
 Connection: close
+Content-Type: [FOUR]
 
-Hello, World!
+hello world
