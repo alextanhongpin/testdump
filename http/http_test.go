@@ -50,7 +50,6 @@ func TestDump(t *testing.T) {
 
 func TestJSON(t *testing.T) {
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
 		type response struct {
 			Error string `json:"error"`
 		}
@@ -84,8 +83,8 @@ func TestJSON(t *testing.T) {
 
 	t.Run("original response is preserved", func(t *testing.T) {
 		w := wr.Result()
-		if w.StatusCode != http.StatusOK {
-			t.Errorf("want %d, got %d", http.StatusOK, w.StatusCode)
+		if w.StatusCode != http.StatusBadRequest {
+			t.Errorf("want %d, got %d", http.StatusBadRequest, w.StatusCode)
 		}
 		defer w.Body.Close()
 		b, err := io.ReadAll(w.Body)
@@ -103,7 +102,6 @@ func TestJSON(t *testing.T) {
 
 func TestJSONCreate(t *testing.T) {
 	h := func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
 		type response struct {
 			ID int `json:"id"`
 		}

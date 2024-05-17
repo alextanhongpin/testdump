@@ -5,12 +5,13 @@ Content-Length: 47
 Content-Type: application/json
 
 {
- "createdAt": "2024-05-17T13:18:52+08:00"
+ "createdAt": "2024-05-17T14:47:22+08:00"
 }
 -- response.http --
 HTTP/1.1 200 OK
 Connection: close
+Content-Type: application/json
 
 {
- "id": 90
+ "id": 31
 }

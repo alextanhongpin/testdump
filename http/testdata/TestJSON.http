@@ -9,8 +9,9 @@ Content-Type: application/json
  "password": "12345678"
 }
 -- response.http --
-HTTP/1.1 200 OK
+HTTP/1.1 400 Bad Request
 Connection: close
+Content-Type: application/json
 
 {
  "error": "bad request"

@@ -107,9 +107,8 @@ func NewResponseDump(r *http.Response) (*Dump, error) {
 }
 
 // Write writes the request/response pair to bytes.
-func Write(w *http.Response, r *http.Request) ([]byte, error) {
+func Write(w *http.Response, r *http.Request, pretty bool) ([]byte, error) {
 	// Format the JSON body.
-	pretty := true
 	req, err := internal.DumpRequest(r, pretty)
 	if err != nil {
 		return nil, err

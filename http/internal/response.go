@@ -24,13 +24,13 @@ func CloneResponse(w *http.Response) (*http.Response, error) {
 	return wc, err
 }
 
-func DumpResponse(r *http.Response, pretty bool) ([]byte, error) {
+func DumpResponse(w *http.Response, pretty bool) ([]byte, error) {
 	// Before dumping
-	if err := NormalizeResponse(r, pretty); err != nil {
+	if err := NormalizeResponse(w, pretty); err != nil {
 		return nil, err
 	}
 
-	b, err := httputil.DumpResponse(r, true)
+	b, err := httputil.DumpResponse(w, true)
 	if err != nil {
 		return nil, err
 	}
@@ -70,24 +70,24 @@ func NormalizeResponse(w *http.Response, pretty bool) error {
 	return nil
 }
 
-func FormatResponseLine(r *http.Response) string {
+func FormatResponseLine(w *http.Response) string {
 	// Status line
-	text := r.Status
+	text := w.Status
 	if text == "" {
-		text = http.StatusText(r.StatusCode)
+		text = http.StatusText(w.StatusCode)
 		if text == "" {
-			text = "status code " + strconv.Itoa(r.StatusCode)
+			text = "status code " + strconv.Itoa(w.StatusCode)
 		}
 	} else {
-		// Just to reduce stutter, if user set r.Status to "200 OK" and StatusCode to 200.
+		// Just to reduce stutter, if user set w.Status to "200 OK" and StatusCode to 200.
 		// Not important.
-		text = strings.TrimPrefix(text, strconv.Itoa(r.StatusCode)+" ")
+		text = strings.TrimPrefix(text, strconv.Itoa(w.StatusCode)+" ")
 	}
 
 	return fmt.Sprintf("HTTP/%d.%d %03d %s",
-		r.ProtoMajor,
-		r.ProtoMinor,
-		r.StatusCode,
+		w.ProtoMajor,
+		w.ProtoMinor,
+		w.StatusCode,
 		text,
 	)
 }

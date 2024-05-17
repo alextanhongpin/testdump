@@ -3,6 +3,7 @@ package http
 import (
 	"bytes"
 	"cmp"
+	"flag"
 	"fmt"
 	"io"
 	"io/fs"
@@ -14,6 +15,12 @@ import (
 	"github.com/alextanhongpin/dump/http/internal"
 )
 
+var update bool
+
+func init() {
+	flag.BoolVar(&update, "update", false, "force update the httpdump testdata")
+}
+
 type Handler struct {
 	t                *testing.T
 	h                http.Handler
@@ -21,6 +28,7 @@ type Handler struct {
 	RequestComparer  *CompareOption
 	ResponseComparer *CompareOption
 	FS               fs.FS
+	PrettyJSON       bool
 }
 
 func NewHandler(t *testing.T, h http.Handler, middlewares ...Middleware) *Handler {
@@ -30,6 +38,7 @@ func NewHandler(t *testing.T, h http.Handler, middlewares ...Middleware) *Handle
 		Middlewares:      middlewares,
 		RequestComparer:  new(CompareOption),
 		ResponseComparer: new(CompareOption),
+		PrettyJSON:       true,
 	}
 }
 
@@ -40,6 +49,7 @@ func NewHandlerFunc(t *testing.T, h http.HandlerFunc, middlewares ...Middleware)
 		Middlewares:      middlewares,
 		RequestComparer:  new(CompareOption),
 		ResponseComparer: new(CompareOption),
+		PrettyJSON:       true,
 	}
 }
 
@@ -126,12 +136,12 @@ func (h *Handler) apply(w *http.Response, r *http.Request) (*http.Response, *htt
 }
 
 func (h *Handler) write(file string, wc *http.Response, rc *http.Request) (bool, error) {
-	src, err := Write(wc, rc)
+	src, err := Write(wc, rc, h.PrettyJSON)
 	if err != nil {
 		return false, err
 	}
 
-	return internal.WriteFile(file, src, false)
+	return internal.WriteFile(file, src, update)
 }
 
 func (h *Handler) read(file string) (*http.Response, *http.Request, error) {
