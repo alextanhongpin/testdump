@@ -202,7 +202,7 @@ func TestHTTP(t *testing.T) {
 	hd := httpdump.NewHandlerFunc(t, h)
 	hd.ServeHTTP(wr, r)
 
-	t.Run("check response content-type", func(t *testing.T) {
+	t.Run("checks response content-type", func(t *testing.T) {
 		r := wr.Result()
 
 		want := "text/html"
