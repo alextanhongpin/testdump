@@ -118,6 +118,24 @@ func TestForm(t *testing.T) {
 
 func TestJSON(t *testing.T) {
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		type request struct {
+			Email    string `json:"email"`
+			Password string `json:"password"`
+		}
+		var req request
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+
+			return
+		}
+
+		if req.Email != "john.appleseed@mail.com" &&
+			req.Password != "12345678" {
+			http.Error(w, "invalid username or password", http.StatusUnprocessableEntity)
+
+			return
+		}
+
 		type response struct {
 			Error string `json:"error"`
 		}
@@ -205,6 +223,32 @@ func TestMiddleware(t *testing.T) {
 	opts := []httpdump.Option{
 		httpdump.MaskRequestHeaders("[REDACTED]", "content-type"),
 		httpdump.MaskResponseHeaders("[REDACTED]", "content-type"),
+	}
+	hd := httpdump.HandlerFunc(t, h, opts...)
+	hd.ServeHTTP(wr, r)
+}
+
+func TestCustomMiddleware(t *testing.T) {
+	h := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		fmt.Fprint(w, "hello world")
+	}
+
+	wr := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	r.Header.Set("Content-Type", "application/json")
+
+	opts := []httpdump.Option{
+		httpdump.Middleware(func(w *http.Response, r *http.Request) error {
+			defer w.Body.Close()
+			b, err := io.ReadAll(w.Body)
+			if err != nil {
+				return err
+			}
+			b = bytes.ToUpper(b)
+			w.Body = io.NopCloser(bytes.NewReader(b))
+			return nil
+		}),
 	}
 	hd := httpdump.HandlerFunc(t, h, opts...)
 	hd.ServeHTTP(wr, r)
