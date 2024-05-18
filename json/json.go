@@ -1,54 +1,57 @@
 package json
 
 import (
-	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/alextanhongpin/dump/json/internal"
-	"github.com/google/go-cmp/cmp"
+	"github.com/alextanhongpin/dump/pkg/diff"
 )
 
-type Middleware func(b []byte) ([]byte, error)
-
-type Option struct {
-	CompareOptions []cmp.Option
-	Middlewares    []Middleware
-}
-type Dump struct {
-	t   *testing.T
-	opt *Option
-}
-
-func NewDump(t *testing.T, opt *Option) *Dump {
-	return &Dump{
-		t:   t,
-		opt: opt,
+func Dump(t *testing.T, v any, opts ...Option) {
+	t.Helper()
+	if err := dump(t, v, opts...); err != nil {
+		t.Error(err)
 	}
 }
 
-func (d *Dump) Dump(t *testing.T, v any, opt *Option) error {
+func dump(t *testing.T, v any, opts ...Option) error {
+
+	// Extract from struct tags.
+	ignorePaths := IgnorePathsFromStructTag(v)
+	maskPaths := MaskPathsFromStructTag(v)
+	opts = append(opts, MaskPaths(maskPaths...))
+	opts = append(opts, IgnorePaths(ignorePaths...))
+
+	opt := newOption(opts...)
 	t.Helper()
 
-	received, err := json.Marshal(v)
+	receivedBytes, err := json.Marshal(v)
 	if err != nil {
 		return err
 	}
 
-	for _, m := range append(d.opt.Middlewares, opt.Middlewares...) {
-		received, err = m(received)
+	for _, p := range opt.Processors {
+		receivedBytes, err = p(receivedBytes)
 		if err != nil {
 			return err
 		}
 	}
 
-	// TODO: infer filename.
-	file := fmt.Sprintf("testdata/%s.json", t.Name())
+	if opt.Name == "" {
+		opt.Name = internal.TypeName(v)
+	}
+
+	file := filepath.Join(
+		"testdata",
+		t.Name(),
+		fmt.Sprintf("%s.json", opt.Name),
+	)
 	overwrite := false
-	written, err := internal.WriteFile(file, received, overwrite)
+	written, err := internal.WriteFile(file, receivedBytes, overwrite)
 	if err != nil {
 		return err
 	}
@@ -57,14 +60,30 @@ func (d *Dump) Dump(t *testing.T, v any, opt *Option) error {
 		return nil
 	}
 
-	snapshot, err := os.ReadFile(file)
+	snapshotBytes, err := os.ReadFile(file)
 	if err != nil {
 		return err
 	}
 
-	if !bytes.Equal(snapshot, received) {
-		return errors.New("mismatch")
+	for _, p := range opt.IgnorePathsProcessor {
+		snapshotBytes, err = p(snapshotBytes)
+		if err != nil {
+			return err
+		}
+		receivedBytes, err = p(receivedBytes)
+		if err != nil {
+			return err
+		}
 	}
 
-	return nil
+	// Convert back to map[string]any for nicer diff.
+	var snapshot, received any
+	if err := json.Unmarshal(snapshotBytes, &snapshot); err != nil {
+		return err
+	}
+	if err := json.Unmarshal(receivedBytes, &received); err != nil {
+		return err
+	}
+
+	return diff.ANSI(snapshot, received, opt.CmpOpts...)
 }
