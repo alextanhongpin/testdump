@@ -12,7 +12,9 @@ Content-Type: text/plain; charset=utf-8
 
 {
  "form": {
-  "password": "[REDACTED]",
+  "password": [
+   "12345678"
+  ],
   "username": [
    "john"
   ]

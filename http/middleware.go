@@ -78,7 +78,10 @@ func MaskRequestBody(mask string, fields ...string) Middleware {
 			path := reviver.Base(key)
 			for _, f := range fields {
 				if f == path {
-					return mask, nil
+					// Only mask the value if it is a string.
+					if _, ok := val.(string); ok {
+						return mask, nil
+					}
 				}
 			}
 
@@ -115,7 +118,10 @@ func MaskResponseBody(mask string, fields ...string) Middleware {
 			path := reviver.Base(key)
 			for _, f := range fields {
 				if f == path {
-					return mask, nil
+					// Only mask the value if it is a string.
+					if _, ok := val.(string); ok {
+						return mask, nil
+					}
 				}
 			}
 
