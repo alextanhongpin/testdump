@@ -2,24 +2,20 @@ package http
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/alextanhongpin/dump/http/internal"
 )
 
-var update bool
-
-func init() {
-	// TODO: Change this to avoid conflict in naming.
-	flag.BoolVar(&update, "update", false, "force update the httpdump testdata")
-}
+// Env is the environment variable to enable update mode.
+var Env = "TESTDATA_UPDATE"
 
 type Handler struct {
 	t *testing.T
@@ -174,6 +170,7 @@ func (h *Handler) write(file string, wc *http.Response, rc *http.Request) (bool,
 		return false, err
 	}
 
+	update, _ := strconv.ParseBool(os.Getenv(Env))
 	return internal.WriteFile(file, src, update)
 }
 
