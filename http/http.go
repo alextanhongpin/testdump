@@ -2,7 +2,6 @@ package http
 
 import (
 	"bytes"
-	"cmp"
 	"flag"
 	"fmt"
 	"io"
@@ -23,34 +22,39 @@ func init() {
 }
 
 type Handler struct {
-	t                *testing.T
-	h                http.Handler
-	Middlewares      []Middleware
-	RequestComparer  *CompareOption
-	ResponseComparer *CompareOption
+	t                     *testing.T
+	h                     http.Handler
+	Middlewares           []Middleware
+	CompareRequestOption  *CompareOption
+	CompareResponseOption *CompareOption
+	// Output.
+	SnapshotRequest  *http.Request
+	SnapshotResponse *http.Response
+	ReceivedRequest  *http.Request
+	ReceivedResponse *http.Response
 	FS               fs.FS
 	PrettyJSON       bool
 }
 
 func NewHandler(t *testing.T, h http.Handler, middlewares ...Middleware) *Handler {
 	return &Handler{
-		t:                t,
-		h:                h,
-		Middlewares:      middlewares,
-		RequestComparer:  new(CompareOption),
-		ResponseComparer: new(CompareOption),
-		PrettyJSON:       true,
+		t:                     t,
+		h:                     h,
+		Middlewares:           middlewares,
+		CompareRequestOption:  new(CompareOption),
+		CompareResponseOption: new(CompareOption),
+		PrettyJSON:            true,
 	}
 }
 
 func NewHandlerFunc(t *testing.T, h http.HandlerFunc, middlewares ...Middleware) *Handler {
 	return &Handler{
-		t:                t,
-		h:                http.HandlerFunc(h),
-		Middlewares:      middlewares,
-		RequestComparer:  new(CompareOption),
-		ResponseComparer: new(CompareOption),
-		PrettyJSON:       true,
+		t:                     t,
+		h:                     http.HandlerFunc(h),
+		Middlewares:           middlewares,
+		CompareRequestOption:  new(CompareOption),
+		CompareResponseOption: new(CompareOption),
+		PrettyJSON:            true,
 	}
 }
 
@@ -99,8 +103,13 @@ func (h *Handler) dump(w *http.Response, r *http.Request) error {
 		return err
 	}
 
+	h.ReceivedRequest = rc
+	h.ReceivedResponse = wc
+
 	// First write, there's nothing to compare.
 	if written {
+		h.SnapshotRequest = rc
+		h.SnapshotResponse = wc
 		return nil
 	}
 
@@ -109,10 +118,26 @@ func (h *Handler) dump(w *http.Response, r *http.Request) error {
 		return err
 	}
 
-	return cmp.Or(
-		h.compareRequest(rc, rr),
-		h.compareResponse(wc, ww),
-	)
+	h.SnapshotRequest = rr
+	h.SnapshotResponse = ww
+
+	if err := CompareRequest(
+		h.SnapshotRequest,
+		h.ReceivedRequest,
+		h.CompareRequestOption,
+	); err != nil {
+		return fmt.Errorf("Request %w", err)
+	}
+
+	if err := CompareResponse(
+		h.SnapshotResponse,
+		h.ReceivedResponse,
+		h.CompareResponseOption,
+	); err != nil {
+		return fmt.Errorf("Response %w", err)
+	}
+
+	return nil
 }
 
 // apply applies the middleware, cloning the request/response in the process.
@@ -160,37 +185,30 @@ func (h *Handler) read(file string) (*http.Response, *http.Request, error) {
 	return Read(tgt)
 }
 
-func (h *Handler) compareRequest(s, t *http.Request) error {
-	lhs, err := NewRequestDump(s)
+func CompareRequest(s, t *http.Request, opt *CompareOption) error {
+	lhs, err := NewComparableRequest(s)
 	if err != nil {
 		return err
 	}
 
-	rhs, err := NewRequestDump(t)
+	rhs, err := NewComparableRequest(t)
 	if err != nil {
 		return err
 	}
 
-	if err := lhs.Compare(rhs, h.RequestComparer); err != nil {
-		return fmt.Errorf("Request %w", err)
-	}
-	return nil
+	return lhs.Compare(rhs, opt)
 }
 
-func (h *Handler) compareResponse(s, t *http.Response) error {
-	lhs, err := NewResponseDump(s)
+func CompareResponse(s, t *http.Response, opt *CompareOption) error {
+	lhs, err := NewComparableResponse(s)
 	if err != nil {
 		return err
 	}
 
-	rhs, err := NewResponseDump(t)
+	rhs, err := NewComparableResponse(t)
 	if err != nil {
 		return err
 	}
 
-	if err := lhs.Compare(rhs, h.ResponseComparer); err != nil {
-		return fmt.Errorf("Response %w", err)
-	}
-
-	return nil
+	return lhs.Compare(rhs, opt)
 }

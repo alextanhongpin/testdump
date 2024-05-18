@@ -187,8 +187,8 @@ func TestJSONDynamicFields(t *testing.T) {
 	r.Header.Set("Content-Type", "application/json")
 
 	hd := httpdump.NewHandlerFunc(t, h)
-	hd.RequestComparer.Body = []cmp.Option{httpdump.IgnoreMapEntries("createdAt")}
-	hd.ResponseComparer.Body = []cmp.Option{httpdump.IgnoreMapEntries("id")}
+	hd.CompareRequestOption.Body = []cmp.Option{httpdump.IgnoreMapEntries("createdAt")}
+	hd.CompareResponseOption.Body = []cmp.Option{httpdump.IgnoreMapEntries("id")}
 	hd.ServeHTTP(wr, r)
 }
 

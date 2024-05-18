@@ -105,8 +105,8 @@ If the JSON request contains dynamic values such as uuid or datetime, you can sk
 
 ```go
 hd := httpdump.NewHandlerFunc(t, h)
-hd.RequestComparer.Body = []cmp.Option{httpdump.IgnoreMapEntries("createdAt")}
-hd.ResponseComparer.Body = []cmp.Option{httpdump.IgnoreMapEntries("id")}
+hd.CompareRequestOption.Body = []cmp.Option{httpdump.IgnoreMapEntries("createdAt")}
+hd.CompareResponseOption.Body = []cmp.Option{httpdump.IgnoreMapEntries("id")}
 hd.ServeHTTP(wr, r)
 ```
 
