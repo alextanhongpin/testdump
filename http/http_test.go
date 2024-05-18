@@ -16,7 +16,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	httpdump "github.com/alextanhongpin/dump/http"
-	"github.com/google/go-cmp/cmp"
 )
 
 func TestDump(t *testing.T) {
@@ -28,7 +27,7 @@ func TestDump(t *testing.T) {
 	wr := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 
-	hd := httpdump.NewHandler(t, h)
+	hd := httpdump.Handler(t, h)
 	hd.ServeHTTP(wr, r)
 
 	t.Run("original response is preserved", func(t *testing.T) {
@@ -61,7 +60,7 @@ func TestQueryString(t *testing.T) {
 		wr := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodGet, "/?q=golang&limit=20", nil)
 
-		hd := httpdump.NewHandler(t, h)
+		hd := httpdump.Handler(t, h)
 		hd.ServeHTTP(wr, r)
 	})
 
@@ -73,7 +72,7 @@ func TestQueryString(t *testing.T) {
 		q.Add("limit", "20")
 		r.URL.RawQuery = q.Encode()
 
-		hd := httpdump.NewHandler(t, h)
+		hd := httpdump.Handler(t, h)
 		hd.ServeHTTP(wr, r)
 	})
 }
@@ -95,7 +94,7 @@ func TestForm(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(formData.Encode()))
 		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-		hd := httpdump.NewHandler(t, h)
+		hd := httpdump.Handler(t, h)
 		hd.ServeHTTP(wr, r)
 	})
 
@@ -108,11 +107,11 @@ func TestForm(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(formData.Encode()))
 		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-		mw := []httpdump.Middleware{
-			httpdump.MaskRequestBody("[REDACTED]", "password"),
-			httpdump.MaskResponseBody("[REDACTED]", "password"),
+		opts := []httpdump.Option{
+			httpdump.MaskRequestFields("[REDACTED]", "password"),
+			httpdump.MaskResponseFields("[REDACTED]", "password"),
 		}
-		hd := httpdump.NewHandler(t, h, mw...)
+		hd := httpdump.Handler(t, h, opts...)
 		hd.ServeHTTP(wr, r)
 	})
 }
@@ -133,7 +132,7 @@ func TestJSON(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/", bytes.NewReader([]byte(`{"email":"john.appleseed@mail.com", "password": "12345678"}`)))
 	r.Header.Set("Content-Type", "application/json")
 
-	hd := httpdump.NewHandler(t, h)
+	hd := httpdump.Handler(t, h)
 	hd.ServeHTTP(wr, r)
 
 	t.Run("original request is preserved", func(t *testing.T) {
@@ -186,9 +185,10 @@ func TestJSONDynamicFields(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/", bytes.NewReader([]byte(req)))
 	r.Header.Set("Content-Type", "application/json")
 
-	hd := httpdump.NewHandlerFunc(t, h)
-	hd.CompareRequestOption.Body = []cmp.Option{httpdump.IgnoreMapEntries("createdAt")}
-	hd.CompareResponseOption.Body = []cmp.Option{httpdump.IgnoreMapEntries("id")}
+	hd := httpdump.HandlerFunc(t, h,
+		httpdump.IgnoreRequestFields("createdAt"),
+		httpdump.IgnoreResponseFields("id"),
+	)
 	hd.ServeHTTP(wr, r)
 }
 
@@ -202,11 +202,11 @@ func TestMiddleware(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 	r.Header.Set("Content-Type", "application/json")
 
-	mw := []httpdump.Middleware{
-		httpdump.MaskRequestHeader("[REDACTED]", "content-type"),
-		httpdump.MaskResponseHeader("[REDACTED]", "content-type"),
+	opts := []httpdump.Option{
+		httpdump.MaskRequestHeaders("[REDACTED]", "content-type"),
+		httpdump.MaskResponseHeaders("[REDACTED]", "content-type"),
 	}
-	hd := httpdump.NewHandlerFunc(t, h, mw...)
+	hd := httpdump.HandlerFunc(t, h, opts...)
 	hd.ServeHTTP(wr, r)
 }
 
@@ -220,14 +220,14 @@ func TestMiddlewareChain(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 	r.Header.Set("Content-Type", "application/json")
 
-	mw := []httpdump.Middleware{
+	opts := []httpdump.Option{
 		// Second middleware will overwrite the first.
-		httpdump.MaskRequestHeader("[ONE]", "content-type"),
-		httpdump.MaskRequestHeader("[TWO]", "content-type"),
-		httpdump.MaskResponseHeader("[THREE]", "content-type"),
-		httpdump.MaskResponseHeader("[FOUR]", "content-type"),
+		httpdump.MaskRequestHeaders("[ONE]", "content-type"),
+		httpdump.MaskRequestHeaders("[TWO]", "content-type"),
+		httpdump.MaskResponseHeaders("[THREE]", "content-type"),
+		httpdump.MaskResponseHeaders("[FOUR]", "content-type"),
 	}
-	hd := httpdump.NewHandlerFunc(t, h, mw...)
+	hd := httpdump.HandlerFunc(t, h, opts...)
 	hd.ServeHTTP(wr, r)
 
 	t.Run("original request header is preserved", func(t *testing.T) {
@@ -268,7 +268,7 @@ func TestHTML(t *testing.T) {
 	wr := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 	r.Header.Set("Content-Type", "application/json")
-	hd := httpdump.NewHandlerFunc(t, h)
+	hd := httpdump.HandlerFunc(t, h)
 	hd.ServeHTTP(wr, r)
 
 	t.Run("checks response content-type", func(t *testing.T) {
@@ -324,11 +324,11 @@ func TestMask(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/", bytes.NewReader([]byte(`{"email":"john.appleseed@mail.com", "password": "12345678"}`)))
 	r.Header.Set("Content-Type", "application/json")
 
-	mw := []httpdump.Middleware{
-		httpdump.MaskRequestBody("[REDACTED]", "password"),
-		httpdump.MaskResponseBody("[REDACTED]", "accessToken"),
+	opts := []httpdump.Option{
+		httpdump.MaskRequestFields("[REDACTED]", "password"),
+		httpdump.MaskResponseFields("[REDACTED]", "accessToken"),
 	}
-	hd := httpdump.NewHandler(t, h, mw...)
+	hd := httpdump.Handler(t, h, opts...)
 	hd.ServeHTTP(wr, r)
 
 	t.Run("original request is preserved", func(t *testing.T) {
@@ -362,4 +362,47 @@ func TestMask(t *testing.T) {
 			t.Errorf("want %s, got %s", want, got)
 		}
 	})
+}
+
+func TestRoundTrip(t *testing.T) {
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Hello, World!"))
+	})
+	ts := httptest.NewServer(h)
+	defer ts.Close()
+
+	body := strings.NewReader(`{"message": "hello world"}`)
+	// Somehow using httptest.NewRequest doesn't work?
+	r, err := http.NewRequest("POST", ts.URL, body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Dump using round tripper (doesn't consume request body).
+	rt := httpdump.RoundTrip(t, httpdump.IgnoreResponseHeaders("Date"))
+	client := &http.Client{
+		Transport: rt,
+	}
+
+	resp, err := client.Do(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("want ok, got %s", resp.Status)
+	}
+
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := "Hello, World!"
+	got := string(bytes.TrimSpace(b))
+	if want != got {
+		t.Fatalf("want %s, got %s", want, got)
+	}
 }

@@ -1,10 +1,7 @@
 package http
 
 import (
-	"bytes"
 	"fmt"
-	"io"
-	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -17,47 +14,29 @@ import (
 // Env is the environment variable to enable update mode.
 var Env = "TESTDATA_UPDATE"
 
-type Handler struct {
-	t *testing.T
-	h http.Handler
-
-	// Options.
-	Middlewares           []Middleware
-	CompareRequestOption  *CompareOption
-	CompareResponseOption *CompareOption
-	PrettyJSON            bool
-	FS                    fs.FS
-
-	// Output.
-	SnapshotRequest  *http.Request
-	SnapshotResponse *http.Response
-	ReceivedRequest  *http.Request
-	ReceivedResponse *http.Response
+type handler struct {
+	t   *testing.T
+	h   http.Handler
+	opt *option
 }
 
-func NewHandler(t *testing.T, h http.Handler, middlewares ...Middleware) *Handler {
-	return &Handler{
-		t:                     t,
-		h:                     h,
-		Middlewares:           middlewares,
-		CompareRequestOption:  new(CompareOption),
-		CompareResponseOption: new(CompareOption),
-		PrettyJSON:            true,
+func Handler(t *testing.T, h http.Handler, opts ...Option) *handler {
+	return &handler{
+		t:   t,
+		h:   h,
+		opt: newOption(opts...),
 	}
 }
 
-func NewHandlerFunc(t *testing.T, h http.HandlerFunc, middlewares ...Middleware) *Handler {
-	return &Handler{
-		t:                     t,
-		h:                     http.HandlerFunc(h),
-		Middlewares:           middlewares,
-		CompareRequestOption:  new(CompareOption),
-		CompareResponseOption: new(CompareOption),
-		PrettyJSON:            true,
+func HandlerFunc(t *testing.T, h http.HandlerFunc, opts ...Option) *handler {
+	return &handler{
+		t:   t,
+		h:   http.HandlerFunc(h),
+		opt: newOption(opts...),
 	}
 }
 
-func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	t := h.t
 	t.Helper()
 
@@ -66,23 +45,11 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("expected *httptest.ResponseRecorder")
 	}
 
-	var rb []byte
-	if r.Body != nil {
-		defer r.Body.Close()
-
-		var err error
-		rb, err = io.ReadAll(r.Body)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		r.Body = io.NopCloser(bytes.NewReader(rb))
+	rc, err := internal.CloneRequest(r)
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	h.h.ServeHTTP(wr, r)
-
-	// Reset the request, which has been read.
-	r.Body = io.NopCloser(bytes.NewReader(rb))
+	h.h.ServeHTTP(wr, rc)
 
 	if err := h.dump(wr.Result(), r); err != nil {
 		t.Fatal(err)
@@ -90,50 +57,35 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // dump executes the snapshot process.
-func (h *Handler) dump(w *http.Response, r *http.Request) error {
+func (h *handler) dump(w *http.Response, r *http.Request) error {
 	wc, rc, err := h.apply(w, r)
 	if err != nil {
 		return err
 	}
 
 	file := fmt.Sprintf("testdata/%s.http", h.t.Name())
+	// Write the received data to the file.
 	written, err := h.write(file, wc, rc)
 	if err != nil {
 		return err
 	}
 
-	h.ReceivedRequest = rc
-	h.ReceivedResponse = wc
-
 	// First write, there's nothing to compare.
 	if written {
-		h.SnapshotRequest = rc
-		h.SnapshotResponse = wc
-
 		return nil
 	}
 
+	// Read the snapshot data from the file.
 	ww, rr, err := h.read(file)
 	if err != nil {
 		return err
 	}
 
-	h.SnapshotRequest = rr
-	h.SnapshotResponse = ww
-
-	if err := CompareRequest(
-		h.SnapshotRequest,
-		h.ReceivedRequest,
-		h.CompareRequestOption,
-	); err != nil {
+	if err := CompareRequest(rr, rc, h.opt.req); err != nil {
 		return fmt.Errorf("Request %w", err)
 	}
 
-	if err := CompareResponse(
-		h.SnapshotResponse,
-		h.ReceivedResponse,
-		h.CompareResponseOption,
-	); err != nil {
+	if err := CompareResponse(ww, wc, h.opt.res); err != nil {
 		return fmt.Errorf("Response %w", err)
 	}
 
@@ -143,7 +95,7 @@ func (h *Handler) dump(w *http.Response, r *http.Request) error {
 // apply applies the middleware that modifies the request and response.
 // The request and response is cloned before the modification, so it does not
 // affect the original request or response.
-func (h *Handler) apply(w *http.Response, r *http.Request) (*http.Response, *http.Request, error) {
+func (h *handler) apply(w *http.Response, r *http.Request) (*http.Response, *http.Request, error) {
 	wc, err := internal.CloneResponse(w)
 	if err != nil {
 		return nil, nil, err
@@ -154,7 +106,7 @@ func (h *Handler) apply(w *http.Response, r *http.Request) (*http.Response, *htt
 		return nil, nil, err
 	}
 
-	for _, m := range h.Middlewares {
+	for _, m := range h.opt.mws {
 		if err := m(wc, rc); err != nil {
 			return nil, nil, err
 		}
@@ -164,8 +116,8 @@ func (h *Handler) apply(w *http.Response, r *http.Request) (*http.Response, *htt
 }
 
 // write writes the received data to the file, only if it doesn't exist.
-func (h *Handler) write(file string, wc *http.Response, rc *http.Request) (bool, error) {
-	src, err := Write(wc, rc, h.PrettyJSON)
+func (h *handler) write(file string, wc *http.Response, rc *http.Request) (bool, error) {
+	src, err := Write(wc, rc, h.opt.indentJSON)
 	if err != nil {
 		return false, err
 	}
@@ -175,14 +127,10 @@ func (h *Handler) write(file string, wc *http.Response, rc *http.Request) (bool,
 }
 
 // read reads the snapshot data from the file.
-func (h *Handler) read(file string) (*http.Response, *http.Request, error) {
+func (h *handler) read(file string) (*http.Response, *http.Request, error) {
 	var tgt []byte
 	var err error
-	if h.FS != nil {
-		tgt, err = fs.ReadFile(h.FS, file)
-	} else {
-		tgt, err = os.ReadFile(file)
-	}
+	tgt, err = os.ReadFile(file)
 	if err != nil {
 		return nil, nil, err
 	}

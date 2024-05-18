@@ -1,0 +1,15 @@
+-- request.http --
+POST / HTTP/1.1
+Host: 127.0.0.1:52236
+Content-Length: 31
+
+{
+ "message": "hello world"
+}
+-- response.http --
+HTTP/1.1 200 OK
+Content-Length: 13
+Content-Type: text/plain; charset=utf-8
+Date: Sat, 18 May 2024 16:54:51 GMT
+
+Hello, World!

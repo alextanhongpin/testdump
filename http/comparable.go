@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/alextanhongpin/dump/http/internal"
+	"github.com/alextanhongpin/dump/pkg/diff"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -30,24 +31,28 @@ type CompareOption struct {
 	Trailer []cmp.Option
 }
 
-func (x *Comparable) Compare(y *Comparable, opt *CompareOption) error {
-	if opt == nil {
-		opt = new(CompareOption)
+func (c CompareOption) Merge(o CompareOption) CompareOption {
+	return CompareOption{
+		Header:  append(c.Header, o.Header...),
+		Body:    append(c.Body, o.Body...),
+		Trailer: append(c.Trailer, o.Trailer...),
 	}
+}
 
-	if err := ANSIDiff(x.Line, y.Line); err != nil {
+func (x *Comparable) Compare(y *Comparable, opt CompareOption) error {
+	if err := diff.ANSI(x.Line, y.Line); err != nil {
 		return fmt.Errorf("Line: %w", err)
 	}
 
-	if err := ANSIDiff(x.Body, y.Body, opt.Body...); err != nil {
+	if err := diff.ANSI(x.Body, y.Body, opt.Body...); err != nil {
 		return fmt.Errorf("Body: %w", err)
 	}
 
-	if err := ANSIDiff(x.Header, y.Header, opt.Header...); err != nil {
+	if err := diff.ANSI(x.Header, y.Header, opt.Header...); err != nil {
 		return fmt.Errorf("Header: %w", err)
 	}
 
-	if err := ANSIDiff(x.Trailer, y.Trailer, opt.Trailer...); err != nil {
+	if err := diff.ANSI(x.Trailer, y.Trailer, opt.Trailer...); err != nil {
 		return fmt.Errorf("Trailer: %w", err)
 	}
 
@@ -107,7 +112,7 @@ func NewComparableResponse(r *http.Response) (*Comparable, error) {
 	}, nil
 }
 
-func CompareRequest(s, t *http.Request, opt *CompareOption) error {
+func CompareRequest(s, t *http.Request, opt CompareOption) error {
 	lhs, err := NewComparableRequest(s)
 	if err != nil {
 		return err
@@ -121,7 +126,7 @@ func CompareRequest(s, t *http.Request, opt *CompareOption) error {
 	return lhs.Compare(rhs, opt)
 }
 
-func CompareResponse(s, t *http.Response, opt *CompareOption) error {
+func CompareResponse(s, t *http.Response, opt CompareOption) error {
 	lhs, err := NewComparableResponse(s)
 	if err != nil {
 		return err

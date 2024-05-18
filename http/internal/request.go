@@ -12,13 +12,18 @@ import (
 
 func CloneRequest(r *http.Request) (*http.Request, error) {
 	// Read the original request body.
-	defer r.Body.Close()
-	b, err := io.ReadAll(r.Body)
-	if err != nil {
-		return nil, err
-	}
+	var b []byte
+	if r.Body != nil {
+		defer r.Body.Close()
 
-	r.Body = io.NopCloser(bytes.NewReader(b))
+		var err error
+		b, err = io.ReadAll(r.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		r.Body = io.NopCloser(bytes.NewReader(b))
+	}
 
 	// Cloning does not clone the body.
 	// Set a new body for the clone.

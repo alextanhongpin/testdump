@@ -12,9 +12,15 @@ import (
 	"github.com/alextanhongpin/dump/pkg/reviver"
 )
 
+const (
+	maskValue = "[REDACTED]"
+)
+
 type Middleware func(w *http.Response, r *http.Request) error
 
-func MaskRequestHeader(mask string, fields ...string) Middleware {
+func (m Middleware) isOption() {}
+
+func MaskRequestHeaders(mask string, fields ...string) Middleware {
 	return func(w *http.Response, r *http.Request) error {
 		for _, field := range fields {
 			v := r.Header.Get(field)
@@ -29,7 +35,7 @@ func MaskRequestHeader(mask string, fields ...string) Middleware {
 	}
 }
 
-func MaskResponseHeader(mask string, fields ...string) Middleware {
+func MaskResponseHeaders(mask string, fields ...string) Middleware {
 	return func(w *http.Response, r *http.Request) error {
 		for _, field := range fields {
 			v := w.Header.Get(field)
@@ -44,7 +50,7 @@ func MaskResponseHeader(mask string, fields ...string) Middleware {
 	}
 }
 
-func MaskRequestBody(mask string, fields ...string) Middleware {
+func MaskRequestFields(mask string, fields ...string) Middleware {
 	return func(w *http.Response, r *http.Request) error {
 		defer r.Body.Close()
 
@@ -100,7 +106,7 @@ func MaskRequestBody(mask string, fields ...string) Middleware {
 	}
 }
 
-func MaskResponseBody(mask string, fields ...string) Middleware {
+func MaskResponseFields(mask string, fields ...string) Middleware {
 	return func(w *http.Response, r *http.Request) error {
 		defer w.Body.Close()
 
