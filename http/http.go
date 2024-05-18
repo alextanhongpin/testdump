@@ -18,6 +18,7 @@ import (
 var update bool
 
 func init() {
+	// TODO: Change this to avoid conflict in naming.
 	flag.BoolVar(&update, "update", false, "force update the httpdump testdata")
 }
 
