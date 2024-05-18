@@ -51,21 +51,21 @@ func MaskRequestBody(mask string, fields ...string) Middleware {
 			return err
 		}
 
-		a, err := reviver.Unmarshal(b, func(root, key string, val any) (any, error) {
+		var m map[string]any
+		if err := reviver.Unmarshal(b, &m, func(key string, val any) (any, error) {
+			path := reviver.Base(key)
 			for _, f := range fields {
-				if f == key {
+				if f == path {
 					return mask, nil
 				}
 			}
 
 			return val, nil
-		})
-
-		if err != nil {
+		}); err != nil {
 			return err
 		}
 
-		b, err = json.Marshal(a)
+		b, err = json.Marshal(m)
 		if err != nil {
 			return err
 		}
@@ -84,21 +84,21 @@ func MaskResponseBody(mask string, fields ...string) Middleware {
 			return err
 		}
 
-		a, err := reviver.Unmarshal(b, func(root, key string, val any) (any, error) {
+		var m map[string]any
+		if err := reviver.Unmarshal(b, &m, func(key string, val any) (any, error) {
+			path := reviver.Base(key)
 			for _, f := range fields {
-				if f == key {
+				if f == path {
 					return mask, nil
 				}
 			}
 
 			return val, nil
-		})
-
-		if err != nil {
+		}); err != nil {
 			return err
 		}
 
-		b, err = json.Marshal(a)
+		b, err = json.Marshal(m)
 		if err != nil {
 			return err
 		}
