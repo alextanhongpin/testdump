@@ -22,18 +22,21 @@ func init() {
 }
 
 type Handler struct {
-	t                     *testing.T
-	h                     http.Handler
+	t *testing.T
+	h http.Handler
+
+	// Options.
 	Middlewares           []Middleware
 	CompareRequestOption  *CompareOption
 	CompareResponseOption *CompareOption
+	PrettyJSON            bool
+	FS                    fs.FS
+
 	// Output.
 	SnapshotRequest  *http.Request
 	SnapshotResponse *http.Response
 	ReceivedRequest  *http.Request
 	ReceivedResponse *http.Response
-	FS               fs.FS
-	PrettyJSON       bool
 }
 
 func NewHandler(t *testing.T, h http.Handler, middlewares ...Middleware) *Handler {
@@ -80,10 +83,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		r.Body = io.NopCloser(bytes.NewReader(rb))
 	}
 
-	// do something with w first.
 	h.h.ServeHTTP(wr, r)
 
-	// Reset the request.
+	// Reset the request, which has been read.
 	r.Body = io.NopCloser(bytes.NewReader(rb))
 
 	if err := h.dump(wr.Result(), r); err != nil {
@@ -91,6 +93,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// dump executes the snapshot process.
 func (h *Handler) dump(w *http.Response, r *http.Request) error {
 	wc, rc, err := h.apply(w, r)
 	if err != nil {
@@ -110,6 +113,7 @@ func (h *Handler) dump(w *http.Response, r *http.Request) error {
 	if written {
 		h.SnapshotRequest = rc
 		h.SnapshotResponse = wc
+
 		return nil
 	}
 
@@ -140,7 +144,9 @@ func (h *Handler) dump(w *http.Response, r *http.Request) error {
 	return nil
 }
 
-// apply applies the middleware, cloning the request/response in the process.
+// apply applies the middleware that modifies the request and response.
+// The request and response is cloned before the modification, so it does not
+// affect the original request or response.
 func (h *Handler) apply(w *http.Response, r *http.Request) (*http.Response, *http.Request, error) {
 	wc, err := internal.CloneResponse(w)
 	if err != nil {
@@ -161,6 +167,7 @@ func (h *Handler) apply(w *http.Response, r *http.Request) (*http.Response, *htt
 	return wc, rc, nil
 }
 
+// write writes the received data to the file, only if it doesn't exist.
 func (h *Handler) write(file string, wc *http.Response, rc *http.Request) (bool, error) {
 	src, err := Write(wc, rc, h.PrettyJSON)
 	if err != nil {
@@ -170,6 +177,7 @@ func (h *Handler) write(file string, wc *http.Response, rc *http.Request) (bool,
 	return internal.WriteFile(file, src, update)
 }
 
+// read reads the snapshot data from the file.
 func (h *Handler) read(file string) (*http.Response, *http.Request, error) {
 	var tgt []byte
 	var err error
@@ -183,32 +191,4 @@ func (h *Handler) read(file string) (*http.Response, *http.Request, error) {
 	}
 
 	return Read(tgt)
-}
-
-func CompareRequest(s, t *http.Request, opt *CompareOption) error {
-	lhs, err := NewComparableRequest(s)
-	if err != nil {
-		return err
-	}
-
-	rhs, err := NewComparableRequest(t)
-	if err != nil {
-		return err
-	}
-
-	return lhs.Compare(rhs, opt)
-}
-
-func CompareResponse(s, t *http.Response, opt *CompareOption) error {
-	lhs, err := NewComparableResponse(s)
-	if err != nil {
-		return err
-	}
-
-	rhs, err := NewComparableResponse(t)
-	if err != nil {
-		return err
-	}
-
-	return lhs.Compare(rhs, opt)
 }

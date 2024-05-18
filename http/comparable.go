@@ -105,3 +105,31 @@ func NewComparableResponse(r *http.Response) (*Comparable, error) {
 		Trailer: r.Trailer.Clone(),
 	}, nil
 }
+
+func CompareRequest(s, t *http.Request, opt *CompareOption) error {
+	lhs, err := NewComparableRequest(s)
+	if err != nil {
+		return err
+	}
+
+	rhs, err := NewComparableRequest(t)
+	if err != nil {
+		return err
+	}
+
+	return lhs.Compare(rhs, opt)
+}
+
+func CompareResponse(s, t *http.Response, opt *CompareOption) error {
+	lhs, err := NewComparableResponse(s)
+	if err != nil {
+		return err
+	}
+
+	rhs, err := NewComparableResponse(t)
+	if err != nil {
+		return err
+	}
+
+	return lhs.Compare(rhs, opt)
+}
