@@ -61,6 +61,7 @@ func NewComparableRequest(r *http.Request) (*Comparable, error) {
 		if err != nil {
 			return nil, err
 		}
+		b = bytes.TrimSpace(b)
 
 		if json.Valid(b) {
 			if err := json.Unmarshal(b, &a); err != nil {
@@ -85,6 +86,7 @@ func NewComparableResponse(r *http.Response) (*Comparable, error) {
 	if err != nil {
 		return nil, err
 	}
+	b = bytes.TrimSpace(b)
 
 	var a any
 	if json.Valid(b) {
@@ -92,10 +94,9 @@ func NewComparableResponse(r *http.Response) (*Comparable, error) {
 			return nil, err
 		}
 	} else {
-		a = string(bytes.TrimSpace(b))
+		a = string(b)
 	}
 
-	b = bytes.TrimSpace(b)
 	r.Body = io.NopCloser(bytes.NewReader(b))
 
 	return &Comparable{
