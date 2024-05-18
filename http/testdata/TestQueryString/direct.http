@@ -1,0 +1,19 @@
+-- request.http --
+GET /?q=golang&limit=20 HTTP/1.1
+Host: example.com
+
+-- response.http --
+HTTP/1.1 200 OK
+Connection: close
+Content-Type: text/plain; charset=utf-8
+
+{
+ "links": {
+  "limit": [
+   "20"
+  ],
+  "q": [
+   "golang"
+  ]
+ }
+}

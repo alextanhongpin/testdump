@@ -9,6 +9,8 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -45,6 +47,73 @@ func TestDump(t *testing.T) {
 		if want != got {
 			t.Errorf("want %s, got %s", want, got)
 		}
+	})
+}
+
+func TestQueryString(t *testing.T) {
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{
+			"links": r.URL.Query(),
+		})
+	})
+
+	t.Run("direct", func(t *testing.T) {
+		wr := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodGet, "/?q=golang&limit=20", nil)
+
+		hd := httpdump.NewHandler(t, h)
+		hd.ServeHTTP(wr, r)
+	})
+
+	t.Run("programmatic", func(t *testing.T) {
+		wr := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodGet, "/", nil)
+		q := r.URL.Query()
+		q.Add("q", "golang")
+		q.Add("limit", "20")
+		r.URL.RawQuery = q.Encode()
+
+		hd := httpdump.NewHandler(t, h)
+		hd.ServeHTTP(wr, r)
+	})
+}
+
+func TestForm(t *testing.T) {
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+		json.NewEncoder(w).Encode(map[string]any{
+			"form": r.Form,
+		})
+	})
+
+	t.Run("no masking", func(t *testing.T) {
+		wr := httptest.NewRecorder()
+		formData := url.Values{
+			"username": []string{"john"},
+			"password": []string{"12345678"},
+		}
+		r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(formData.Encode()))
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+		hd := httpdump.NewHandler(t, h)
+		hd.ServeHTTP(wr, r)
+	})
+
+	t.Run("mask field", func(t *testing.T) {
+		wr := httptest.NewRecorder()
+		formData := url.Values{
+			"username": []string{"john"},
+			"password": []string{"12345678"},
+		}
+		r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(formData.Encode()))
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+		mw := []httpdump.Middleware{
+			httpdump.MaskRequestBody("[REDACTED]", "password"),
+			httpdump.MaskResponseBody("[REDACTED]", "password"),
+		}
+		hd := httpdump.NewHandler(t, h, mw...)
+		hd.ServeHTTP(wr, r)
 	})
 }
 
@@ -100,7 +169,7 @@ func TestJSON(t *testing.T) {
 	})
 }
 
-func TestJSONCreate(t *testing.T) {
+func TestJSONDynamicFields(t *testing.T) {
 	h := func(w http.ResponseWriter, r *http.Request) {
 		type response struct {
 			ID int `json:"id"`

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/alextanhongpin/dump/pkg/reviver"
 )
@@ -51,6 +53,26 @@ func MaskRequestBody(mask string, fields ...string) Middleware {
 			return err
 		}
 
+		// This is only available for request, since only
+		// request can contain form data.
+		if !json.Valid(b) {
+			// Could this be a form data?
+			v, err := url.ParseQuery(string(b))
+			if err != nil {
+				// Skip processing.
+				r.Body = io.NopCloser(bytes.NewReader(b))
+				return nil
+			}
+			for _, f := range fields {
+				if v.Get(f) == "" {
+					return fmt.Errorf("missing field %s", f)
+				}
+				v.Set(f, mask)
+			}
+			r.Body = io.NopCloser(strings.NewReader(v.Encode()))
+			return nil
+		}
+
 		var m map[string]any
 		if err := reviver.Unmarshal(b, &m, func(key string, val any) (any, error) {
 			path := reviver.Base(key)
@@ -82,6 +104,10 @@ func MaskResponseBody(mask string, fields ...string) Middleware {
 		b, err := io.ReadAll(w.Body)
 		if err != nil {
 			return err
+		}
+		if !json.Valid(b) {
+			r.Body = io.NopCloser(bytes.NewReader(b))
+			return nil
 		}
 
 		var m map[string]any
