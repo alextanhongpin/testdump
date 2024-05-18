@@ -46,15 +46,6 @@ func newOption(opts ...Option) *option {
 			opt.Name = string(v)
 		}
 	}
-	slices.Sort(opt.IgnoreFields)
-	slices.Sort(opt.IgnorePaths)
-	slices.Sort(opt.MaskFields)
-	slices.Sort(opt.MaskPaths)
-	opt.IgnoreFields = slices.Compact(opt.IgnoreFields)
-	opt.IgnorePaths = slices.Compact(opt.IgnorePaths)
-	opt.MaskFields = slices.Compact(opt.MaskFields)
-	opt.MaskPaths = slices.Compact(opt.MaskPaths)
-
 	if len(opt.MaskFields) > 0 {
 		opt.Processors = append(opt.Processors, MaskFieldProcessor(maskValue, opt.MaskFields...))
 	}
@@ -115,6 +106,7 @@ func IgnoreFields(fields ...string) ignoreFields {
 	for i, field := range fields {
 		res[i] = field
 	}
+
 	return res
 }
 
@@ -123,6 +115,7 @@ func IgnorePaths(paths ...string) ignorePaths {
 	for i, p := range paths {
 		res[i] = p
 	}
+
 	return res
 }
 
@@ -133,6 +126,7 @@ func MaskFields(fields ...string) maskFields {
 	for i, field := range fields {
 		res[i] = field
 	}
+
 	return res
 }
 
@@ -144,6 +138,7 @@ func MaskPaths(paths ...string) maskPaths {
 	for i, p := range paths {
 		res[i] = p
 	}
+
 	return res
 }
 
@@ -152,6 +147,9 @@ type Name string
 func (n Name) isOption() {}
 
 func IgnoreMapEntries(keys ...string) cmp.Option {
+	slices.Sort(keys)
+	keys = slices.Compact(keys)
+
 	return cmpopts.IgnoreMapEntries(func(k string, v any) bool {
 		for _, key := range keys {
 			if key == k {

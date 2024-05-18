@@ -1,6 +1,7 @@
 package json
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -13,13 +14,13 @@ import (
 
 func Dump(t *testing.T, v any, opts ...Option) {
 	t.Helper()
+
 	if err := dump(t, v, opts...); err != nil {
 		t.Error(err)
 	}
 }
 
 func dump(t *testing.T, v any, opts ...Option) error {
-
 	// Extract from struct tags.
 	ignorePaths := IgnorePathsFromStructTag(v)
 	maskPaths := MaskPathsFromStructTag(v)
@@ -27,7 +28,6 @@ func dump(t *testing.T, v any, opts ...Option) error {
 	opts = append(opts, IgnorePaths(ignorePaths...))
 
 	opt := newOption(opts...)
-	t.Helper()
 
 	receivedBytes, err := json.Marshal(v)
 	if err != nil {
@@ -41,15 +41,8 @@ func dump(t *testing.T, v any, opts ...Option) error {
 		}
 	}
 
-	if opt.Name == "" {
-		opt.Name = internal.TypeName(v)
-	}
-
-	file := filepath.Join(
-		"testdata",
-		t.Name(),
-		fmt.Sprintf("%s.json", opt.Name),
-	)
+	file := filepath.Join("testdata", t.Name(), fmt.Sprintf("%s.json", cmp.Or(opt.Name, internal.TypeName(v))))
+	// TODO: change into a flag or env vars.
 	overwrite := false
 	written, err := internal.WriteFile(file, receivedBytes, overwrite)
 	if err != nil {
@@ -65,11 +58,15 @@ func dump(t *testing.T, v any, opts ...Option) error {
 		return err
 	}
 
+	// Since google's cmp does not have an option to ignore paths, we just mask
+	// the values before comparing.
+	// The masked values will not be written to the file.
 	for _, p := range opt.IgnorePathsProcessor {
 		snapshotBytes, err = p(snapshotBytes)
 		if err != nil {
 			return err
 		}
+
 		receivedBytes, err = p(receivedBytes)
 		if err != nil {
 			return err

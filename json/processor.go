@@ -3,8 +3,8 @@ package json
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"reflect"
+	"slices"
 	"strconv"
 
 	"github.com/alextanhongpin/dump/json/internal"
@@ -20,6 +20,9 @@ func IndentProcessor(b []byte) ([]byte, error) {
 }
 
 func MaskFieldProcessor(mask string, fields ...string) Processor {
+	slices.Sort(fields)
+	fields = slices.Compact(fields)
+
 	return func(b []byte) ([]byte, error) {
 		var m any
 		if err := reviver.Unmarshal(b, &m, func(key string, val any) (any, error) {
@@ -44,7 +47,9 @@ func MaskFieldProcessor(mask string, fields ...string) Processor {
 }
 
 func MaskPathProcessor(mask string, paths ...string) Processor {
-	fmt.Println(mask, paths)
+	slices.Sort(paths)
+	paths = slices.Compact(paths)
+
 	return func(b []byte) ([]byte, error) {
 		var m any
 		if err := reviver.Unmarshal(b, &m, func(key string, val any) (any, error) {

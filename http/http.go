@@ -45,12 +45,15 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("expected *httptest.ResponseRecorder")
 	}
 
+	// Use the cloned request to avoid modifying the original request.
 	rc, err := internal.CloneRequest(r)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	h.h.ServeHTTP(wr, rc)
 
+	// Dump the request and response to the file.
 	if err := h.dump(wr.Result(), r); err != nil {
 		t.Fatal(err)
 	}
@@ -64,6 +67,7 @@ func (h *handler) dump(w *http.Response, r *http.Request) error {
 	}
 
 	file := fmt.Sprintf("testdata/%s.http", h.t.Name())
+
 	// Write the received data to the file.
 	written, err := h.write(file, wc, rc)
 	if err != nil {
@@ -81,6 +85,7 @@ func (h *handler) dump(w *http.Response, r *http.Request) error {
 		return err
 	}
 
+	// Compare the request and response pair.
 	if err := CompareRequest(rr, rc, h.opt.req); err != nil {
 		return fmt.Errorf("Request %w", err)
 	}
