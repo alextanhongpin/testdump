@@ -6,6 +6,7 @@ import (
 	"time"
 
 	jsondump "github.com/alextanhongpin/dump/json"
+	"github.com/alextanhongpin/dump/pkg/cuetest"
 )
 
 func TestDump(t *testing.T) {
@@ -213,4 +214,103 @@ func TestCustomName(t *testing.T) {
 
 	jsondump.Dump(t, john, jsondump.Name("john"))
 	jsondump.Dump(t, jane, jsondump.Name("jane"))
+}
+
+func TestCUESchema(t *testing.T) {
+	type User struct {
+		Name     string   `json:"name"`
+		Age      int      `json:"age"`
+		Birthday string   `json:"birthday"`
+		Hobbies  []string `json:"hobbies"`
+		ImageURL string   `json:"imageURL"`
+	}
+
+	u := User{
+		Name:     "John",
+		Age:      13,
+		Birthday: time.Now().Format(time.DateOnly),
+		Hobbies:  []string{"reading"},
+		ImageURL: "https://example.com/image.jpg",
+	}
+
+	c := &cuetest.Validator{
+		Schemas: []string{`package test
+// https://cuelang.org/docs/howto/
+
+import "list"
+import "time"
+import "strings"
+
+let url = =~ "^https://(.+)"
+
+#User: close({
+    name!: string & strings.MinRunes(2) & strings.MaxRunes(8)
+    age!: >= 13
+    hobbies!: [...string] & list.MinItems(1) & list.MaxItems(1)
+    birthday!: string & time.Format("2006-01-02")
+    imageURL: string & url
+})
+
+#User`, // Set the root to #User.
+		},
+	}
+
+	jsondump.Dump(t, u, jsondump.Validator(c.Validate))
+}
+
+func TestCUESchemaField(t *testing.T) {
+	type User struct {
+		Name     string   `json:"name"`
+		Age      int      `json:"age"`
+		Birthday string   `json:"birthday"`
+		Hobbies  []string `json:"hobbies"`
+		ImageURL string   `json:"imageURL"`
+	}
+
+	u := User{
+		Name:     "John",
+		Age:      13,
+		Birthday: time.Now().Format(time.DateOnly),
+		Hobbies:  []string{"reading"},
+		ImageURL: "https://example.com/image.jpg",
+	}
+
+	c := &cuetest.Validator{
+		// We don't need to do full validation.
+		// This is just a simpler way to do assertions.
+		Schemas: []string{
+			`age!: >= 13`,
+			`import "strings"
+name!: string & strings.MinRunes(1)`,
+		},
+	}
+
+	jsondump.Dump(t, u, jsondump.Validator(c.Validate))
+}
+
+func TestCUESchemaPath(t *testing.T) {
+	type User struct {
+		Name     string   `json:"name"`
+		Age      int      `json:"age"`
+		Birthday string   `json:"birthday"`
+		Hobbies  []string `json:"hobbies"`
+		ImageURL string   `json:"imageURL"`
+	}
+
+	u := User{
+		Name:     "John",
+		Age:      13,
+		Birthday: time.Now().Format(time.DateOnly),
+		Hobbies:  []string{"reading"},
+		ImageURL: "https://example.com/image.jpg",
+	}
+
+	c := &cuetest.Validator{
+		SchemaPaths: []string{
+			"./testdata/user.cue",
+			"./testdata/test.cue",
+		},
+	}
+
+	jsondump.Dump(t, u, jsondump.Validator(c.Validate))
 }

@@ -16,6 +16,7 @@ type option struct {
 	Name                 string
 	CmpOpts              []cmp.Option
 	Processors           []Processor
+	Validators           []Validator
 	IgnorePathsProcessor []Processor
 	IgnoreFields         []string
 	IgnorePaths          []string
@@ -32,6 +33,10 @@ func newOption(opts ...Option) *option {
 			opt.Processors = append(opt.Processors, v)
 		case processors:
 			opt.Processors = append(opt.Processors, v...)
+		case Validator:
+			opt.Validators = append(opt.Validators, v)
+		case validators:
+			opt.Validators = append(opt.Validators, v...)
 		case cmpOpts:
 			opt.CmpOpts = append(opt.CmpOpts, v...)
 		case ignoreFields:
@@ -63,6 +68,18 @@ func newOption(opts ...Option) *option {
 
 type Option interface {
 	isOption()
+}
+
+type Validator func(b []byte) error
+
+func (v Validator) isOption() {}
+
+type validators []Validator
+
+func (v validators) isOption() {}
+
+func Validators(vs ...Validator) validators {
+	return vs
 }
 
 type Processor func(b []byte) ([]byte, error)

@@ -2,7 +2,6 @@ package internal
 
 import (
 	"bytes"
-	"cmp"
 	"fmt"
 	"io"
 	"net/http"
@@ -49,10 +48,10 @@ func DumpRequest(r *http.Request, pretty bool) ([]byte, error) {
 }
 
 func FormatRequestLine(req *http.Request) string {
-	reqURI := cmp.Or(req.RequestURI, req.URL.RequestURI())
+	reqURI := or(req.RequestURI, req.URL.RequestURI())
 
 	return fmt.Sprintf("%s %s HTTP/%d.%d",
-		cmp.Or(req.Method, "GET"),
+		or(req.Method, "GET"),
 		reqURI,
 		req.ProtoMajor,
 		req.ProtoMinor,
@@ -95,4 +94,14 @@ func NormalizeRequest(r *http.Request, pretty bool) error {
 	}
 
 	return nil
+}
+
+func or[T comparable](vs ...T) T {
+	var z T
+	for _, v := range vs {
+		if v != z {
+			return v
+		}
+	}
+	return z
 }

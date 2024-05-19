@@ -11,6 +11,11 @@ import (
 	"github.com/alextanhongpin/dump/pkg/reviver"
 )
 
+func CueProcessor(b []byte) ([]byte, error) {
+
+	return b, nil
+}
+
 func IndentProcessor(b []byte) ([]byte, error) {
 	var out bytes.Buffer
 	if err := json.Indent(&out, b, "", " "); err != nil {

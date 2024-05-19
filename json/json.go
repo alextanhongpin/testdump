@@ -1,7 +1,6 @@
 package json
 
 import (
-	"cmp"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -34,6 +33,12 @@ func dump(t *testing.T, v any, opts ...Option) error {
 		return err
 	}
 
+	for _, v := range opt.Validators {
+		if err := v(receivedBytes); err != nil {
+			return err
+		}
+	}
+
 	for _, p := range opt.Processors {
 		receivedBytes, err = p(receivedBytes)
 		if err != nil {
@@ -41,7 +46,7 @@ func dump(t *testing.T, v any, opts ...Option) error {
 		}
 	}
 
-	file := filepath.Join("testdata", t.Name(), fmt.Sprintf("%s.json", cmp.Or(opt.Name, internal.TypeName(v))))
+	file := filepath.Join("testdata", t.Name(), fmt.Sprintf("%s.json", internal.Or(opt.Name, internal.TypeName(v))))
 	// TODO: change into a flag or env vars.
 	overwrite := false
 	written, err := internal.WriteFile(file, receivedBytes, overwrite)
