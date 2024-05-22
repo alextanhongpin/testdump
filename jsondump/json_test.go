@@ -102,8 +102,7 @@ func TestIgnoreFromStructTag(t *testing.T) {
 		},
 	}
 
-	jd := jsondump.New(jsondump.IgnorePathsFromStructTag("cmp", "-"))
-	jd.Dump(t, banner)
+	jsondump.Dump(t, banner, jsondump.IgnorePathsFromStructTag("cmp", "-"))
 }
 
 func TestMaskFields(t *testing.T) {
@@ -155,8 +154,23 @@ func TestMaskFieldsFromStructTag(t *testing.T) {
 		},
 	}
 
-	jd := jsondump.New(jsondump.MaskPathsFromStructTag("mask", "true", "[REDACTED]"))
-	jd.Dump(t, accounts)
+	jsondump.Dump(t, accounts, jsondump.MaskPathsFromStructTag("mask", "true", "[REDACTED]"))
+}
+
+func TestNew(t *testing.T) {
+	type User struct {
+		Password  string    `json:"password" mask:"true"`
+		CreatedAt time.Time `json:"createdAt" cmp:"-"`
+	}
+
+	jd := jsondump.New(
+		jsondump.IgnorePathsFromStructTag("cmp", "-"),
+		jsondump.MaskPathsFromStructTag("mask", "true", "[REDACTED]"),
+	)
+	jd.Dump(t, User{
+		Password:  "password",
+		CreatedAt: time.Now(), // Dynamic value
+	})
 }
 
 func TestMaskPaths(t *testing.T) {
