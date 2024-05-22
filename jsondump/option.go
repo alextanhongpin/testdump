@@ -11,14 +11,14 @@ const (
 )
 
 type option struct {
-	File                 string // A custom file name.
-	Env                  string // The environment variable name to overwrite the snapsnot.
-	CmpOpts              []cmp.Option
-	Processors           []func([]byte) ([]byte, error)
-	IgnorePathsProcessor []func([]byte) ([]byte, error)
+	File                  string // A custom file name.
+	Env                   string // The environment variable name to overwrite the snapsnot.
+	CmpOpts               []cmp.Option
+	Processors            []func([]byte) ([]byte, error)
+	IgnorePathsProcessors []func([]byte) ([]byte, error)
 }
 
-func newOption(opts ...Option) *option {
+func newOption(a any, opts ...Option) *option {
 	opt := new(option)
 
 	for _, o := range opts {
@@ -27,6 +27,8 @@ func newOption(opts ...Option) *option {
 			opt.CmpOpts = append(opt.CmpOpts, v...)
 		case modifier:
 			v(opt)
+		case structModifier:
+			v(a)(opt)
 		}
 	}
 
@@ -43,6 +45,28 @@ type Option interface {
 type modifier func(o *option)
 
 func (m modifier) isOption() {}
+
+type structModifier func(a any) modifier
+
+func (m structModifier) isOption() {}
+
+func MaskPathsFromStructTag(key, val, maskValue string) structModifier {
+	return func(a any) modifier {
+		maskPaths := internal.MaskPathsFromStructTag(a, key, val)
+		return func(o *option) {
+			o.Processors = append(o.Processors, internal.MaskPaths(maskValue, maskPaths))
+		}
+	}
+}
+
+func IgnorePathsFromStructTag(key, val string) structModifier {
+	return func(a any) modifier {
+		maskPaths := internal.IgnorePathsFromStructTag(a, key, val)
+		return func(o *option) {
+			o.IgnorePathsProcessors = append(o.IgnorePathsProcessors, internal.MaskPaths(ignoreValue, maskPaths))
+		}
+	}
+}
 
 // File is the json file name.
 func File(name string) modifier {
@@ -84,7 +108,7 @@ func IgnoreFields(fields ...string) modifier {
 // with the root `$`.
 func IgnorePaths(paths ...string) modifier {
 	return func(o *option) {
-		o.IgnorePathsProcessor = append(o.IgnorePathsProcessor, internal.MaskPaths(ignoreValue, paths...))
+		o.IgnorePathsProcessors = append(o.IgnorePathsProcessors, internal.MaskPaths(ignoreValue, paths))
 	}
 }
 
@@ -100,8 +124,8 @@ func IgnorePaths(paths ...string) modifier {
 //	}
 //
 // Masking the field `name` would result in both `name` fields being masked.
-func MaskFields(mask string, fields ...string) modifier {
-	return Processor(internal.MaskFields(mask, fields...))
+func MaskFields(mask string, fields []string) modifier {
+	return Processor(internal.MaskFields(mask, fields))
 }
 
 // MaskPaths masks the field paths. The path starts with the root `$`.
@@ -116,6 +140,23 @@ func MaskFields(mask string, fields ...string) modifier {
 //
 // The path for the name field would be `$.name`.
 // And the path for the email field would be `$.account.email`.
-func MaskPaths(mask string, paths ...string) modifier {
-	return Processor(internal.MaskPaths(mask, paths...))
+func MaskPaths(mask string, paths []string) modifier {
+	return Processor(internal.MaskPaths(mask, paths))
+}
+
+type masker struct {
+	mask string
+}
+
+func NewMask(mask string) *masker {
+	return &masker{mask: mask}
+}
+
+func (m *masker) MaskFields(fields ...string) modifier {
+	return MaskFields(m.mask, fields)
+}
+
+func (m *masker) MaskPaths(paths ...string) modifier {
+
+	return MaskPaths(m.mask, paths)
 }

@@ -102,8 +102,8 @@ func TestIgnoreFromStructTag(t *testing.T) {
 		},
 	}
 
-	// NOTE: the name is the json tag name.
-	jsondump.Dump(t, banner)
+	jd := jsondump.New(jsondump.IgnorePathsFromStructTag("cmp", "-"))
+	jd.Dump(t, banner)
 }
 
 func TestMaskFields(t *testing.T) {
@@ -128,7 +128,9 @@ func TestMaskFields(t *testing.T) {
 		},
 	}
 
-	jsondump.Dump(t, accounts, jsondump.MaskFields("email"))
+	// Create a consistent maskFields function.
+	m := jsondump.NewMask("REDACTED")
+	jsondump.Dump(t, accounts, m.MaskFields("email"))
 }
 
 func TestMaskFieldsFromStructTag(t *testing.T) {
@@ -153,7 +155,8 @@ func TestMaskFieldsFromStructTag(t *testing.T) {
 		},
 	}
 
-	jsondump.Dump(t, accounts)
+	jd := jsondump.New(jsondump.MaskPathsFromStructTag("mask", "true", "[REDACTED]"))
+	jd.Dump(t, accounts)
 }
 
 func TestMaskPaths(t *testing.T) {
@@ -178,7 +181,7 @@ func TestMaskPaths(t *testing.T) {
 		},
 	}
 
-	jsondump.Dump(t, accounts, jsondump.MaskPaths("$.email.email"))
+	jsondump.Dump(t, accounts, jsondump.MaskPaths("[MASKED]", []string{"$.email.email"}))
 }
 
 func TestCustomProcessor(t *testing.T) {
@@ -195,12 +198,11 @@ func TestMultipleProcessors(t *testing.T) {
 	}, jsondump.Processor(
 		func(b []byte) ([]byte, error) {
 			return bytes.ToLower(b), nil
-		}),
-		jsondump.Processor(
-			func(b []byte) ([]byte, error) {
-				return bytes.ToTitle(b), nil
-			},
-		))
+		},
+		func(b []byte) ([]byte, error) {
+			return bytes.ToTitle(b), nil
+		},
+	))
 }
 
 func TestCustomName(t *testing.T) {

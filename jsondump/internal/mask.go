@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"reflect"
 	"slices"
-	"strconv"
 
 	"github.com/alextanhongpin/dump/pkg/reviver"
 )
+
+const ignoreVal = "[IGNORED]"
 
 func IndentProcessor(b []byte) ([]byte, error) {
 	if !json.Valid(b) {
@@ -25,7 +26,7 @@ func IndentProcessor(b []byte) ([]byte, error) {
 
 // MaskFields masks the field names. It does not take into
 // consideration the path.
-func MaskFields(mask string, fields ...string) func([]byte) ([]byte, error) {
+func MaskFields(mask string, fields []string) func([]byte) ([]byte, error) {
 	slices.Sort(fields)
 	fields = slices.Compact(fields)
 
@@ -52,7 +53,7 @@ func MaskFields(mask string, fields ...string) func([]byte) ([]byte, error) {
 	}
 }
 
-func MaskPaths(mask string, paths ...string) func([]byte) ([]byte, error) {
+func MaskPaths(mask string, paths []string) func([]byte) ([]byte, error) {
 	slices.Sort(paths)
 	paths = slices.Compact(paths)
 
@@ -80,13 +81,12 @@ func MaskPaths(mask string, paths ...string) func([]byte) ([]byte, error) {
 
 // MaskPathsFromStructTag mask the fields with the tag `mask:"true".
 // All fields will have the same mask value.
-func MaskPathsFromStructTag(a any) []string {
+func MaskPathsFromStructTag(a any, key, val string) []string {
 	var maskPaths []string
 	IterStructFields(a, func(k string, f reflect.StructField, v reflect.Value) {
 		// `mask:"true"`
-		tag := f.Tag.Get("mask")
-		ok, _ := strconv.ParseBool(tag)
-		if ok {
+		tag := f.Tag.Get(key)
+		if tag == val {
 			maskPaths = append(maskPaths, k)
 		}
 	})
@@ -94,12 +94,12 @@ func MaskPathsFromStructTag(a any) []string {
 	return maskPaths
 }
 
-func IgnorePathsFromStructTag(a any) []string {
+func IgnorePathsFromStructTag(a any, key, val string) []string {
 	var maskPaths []string
 	IterStructFields(a, func(k string, f reflect.StructField, v reflect.Value) {
 		// `cmp:"-"`
-		tag := f.Tag.Get("cmp")
-		if tag == "-" {
+		tag := f.Tag.Get(key)
+		if tag == val {
 			maskPaths = append(maskPaths, k)
 		}
 	})

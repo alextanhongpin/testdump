@@ -39,12 +39,7 @@ func (d *dumper) Dump(t *testing.T, v any, opts ...Option) {
 
 func dump(t *testing.T, v any, opts ...Option) error {
 	// Extract from struct tags.
-	ignorePaths := internal.IgnorePathsFromStructTag(v)
-	maskPaths := internal.MaskPathsFromStructTag(v)
-	opts = append(opts, MaskPaths(maskValue, maskPaths...))
-	opts = append(opts, IgnorePaths(ignorePaths...))
-
-	opt := newOption(opts...)
+	opt := newOption(v, opts...)
 
 	receivedBytes, err := json.Marshal(v)
 	if err != nil {
@@ -82,7 +77,7 @@ func dump(t *testing.T, v any, opts ...Option) error {
 	// Since google's cmp does not have an option to ignore paths, we just mask
 	// the values before comparing.
 	// The masked values will not be written to the file.
-	for _, p := range opt.IgnorePathsProcessor {
+	for _, p := range opt.IgnorePathsProcessors {
 		snapshotBytes, err = p(snapshotBytes)
 		if err != nil {
 			return err
