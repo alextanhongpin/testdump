@@ -1,29 +1,47 @@
-package json
+package jsondump
 
 import (
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 
-	"github.com/alextanhongpin/dump/json/internal"
+	"github.com/alextanhongpin/dump/jsondump/internal"
 	"github.com/alextanhongpin/dump/pkg/diff"
 )
 
+// New creates a new dumper with the given options.
+// The dumper can be used to dump values to a file.
+func New(opts ...Option) interface {
+	Dump(t *testing.T, v any, opts ...Option)
+} {
+	return &dumper{opts: opts}
+}
+
 func Dump(t *testing.T, v any, opts ...Option) {
+	d := &dumper{}
+	d.Dump(t, v, opts...)
+}
+
+type dumper struct {
+	opts []Option
+}
+
+func (d *dumper) Dump(t *testing.T, v any, opts ...Option) {
 	t.Helper()
 
-	if err := dump(t, v, opts...); err != nil {
+	if err := dump(t, v, append(d.opts, opts...)...); err != nil {
 		t.Error(err)
 	}
 }
 
 func dump(t *testing.T, v any, opts ...Option) error {
 	// Extract from struct tags.
-	ignorePaths := IgnorePathsFromStructTag(v)
-	maskPaths := MaskPathsFromStructTag(v)
-	opts = append(opts, MaskPaths(maskPaths...))
+	ignorePaths := internal.IgnorePathsFromStructTag(v)
+	maskPaths := internal.MaskPathsFromStructTag(v)
+	opts = append(opts, MaskPaths(maskValue, maskPaths...))
 	opts = append(opts, IgnorePaths(ignorePaths...))
 
 	opt := newOption(opts...)
@@ -33,12 +51,6 @@ func dump(t *testing.T, v any, opts ...Option) error {
 		return err
 	}
 
-	for _, v := range opt.Validators {
-		if err := v(receivedBytes); err != nil {
-			return err
-		}
-	}
-
 	for _, p := range opt.Processors {
 		receivedBytes, err = p(receivedBytes)
 		if err != nil {
@@ -46,9 +58,13 @@ func dump(t *testing.T, v any, opts ...Option) error {
 		}
 	}
 
-	file := filepath.Join("testdata", t.Name(), fmt.Sprintf("%s.json", internal.Or(opt.Name, internal.TypeName(v))))
-	// TODO: change into a flag or env vars.
-	overwrite := false
+	file := filepath.Join(
+		"testdata",
+		t.Name(),
+		fmt.Sprintf("%s.json", internal.Or(opt.File, internal.TypeName(v))),
+	)
+
+	overwrite, _ := strconv.ParseBool(os.Getenv(opt.Env))
 	written, err := internal.WriteFile(file, receivedBytes, overwrite)
 	if err != nil {
 		return err

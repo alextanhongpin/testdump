@@ -1,11 +1,11 @@
-package json_test
+package jsondump_test
 
 import (
 	"bytes"
 	"testing"
 	"time"
 
-	jsondump "github.com/alextanhongpin/dump/json"
+	"github.com/alextanhongpin/dump/jsondump"
 	"github.com/alextanhongpin/dump/pkg/cuetest"
 )
 
@@ -192,14 +192,15 @@ func TestCustomProcessor(t *testing.T) {
 func TestMultipleProcessors(t *testing.T) {
 	jsondump.Dump(t, map[string]any{
 		"name": "John",
-	}, jsondump.Processors(
+	}, jsondump.Processor(
 		func(b []byte) ([]byte, error) {
 			return bytes.ToLower(b), nil
-		},
-		func(b []byte) ([]byte, error) {
-			return bytes.ToTitle(b), nil
-		},
-	))
+		}),
+		jsondump.Processor(
+			func(b []byte) ([]byte, error) {
+				return bytes.ToTitle(b), nil
+			},
+		))
 }
 
 func TestCustomName(t *testing.T) {
@@ -212,8 +213,8 @@ func TestCustomName(t *testing.T) {
 		"name": "Jane",
 	}
 
-	jsondump.Dump(t, john, jsondump.Name("john"))
-	jsondump.Dump(t, jane, jsondump.Name("jane"))
+	jsondump.Dump(t, john, jsondump.File("john"))
+	jsondump.Dump(t, jane, jsondump.File("jane"))
 }
 
 func TestCUESchema(t *testing.T) {
@@ -255,7 +256,9 @@ let url = =~ "^https://(.+)"
 		},
 	}
 
-	jsondump.Dump(t, u, jsondump.Validator(c.Validate))
+	jsondump.Dump(t, u, jsondump.Processor(func(b []byte) ([]byte, error) {
+		return b, c.Validate(b)
+	}))
 }
 
 func TestCUESchemaField(t *testing.T) {
@@ -285,7 +288,9 @@ name!: string & strings.MinRunes(1)`,
 		},
 	}
 
-	jsondump.Dump(t, u, jsondump.Validator(c.Validate))
+	jsondump.Dump(t, u, jsondump.Processor(func(b []byte) ([]byte, error) {
+		return b, c.Validate(b)
+	}))
 }
 
 func TestCUESchemaPath(t *testing.T) {
@@ -312,5 +317,7 @@ func TestCUESchemaPath(t *testing.T) {
 		},
 	}
 
-	jsondump.Dump(t, u, jsondump.Validator(c.Validate))
+	jsondump.Dump(t, u, jsondump.Processor(func(b []byte) ([]byte, error) {
+		return b, c.Validate(b)
+	}))
 }

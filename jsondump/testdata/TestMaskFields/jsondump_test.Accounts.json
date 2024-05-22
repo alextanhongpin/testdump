@@ -1,0 +1,10 @@
+{
+ "email": {
+  "email": "john.appleseed@mail.com",
+  "type": "email"
+ },
+ "google": {
+  "email": "john.appleseed@gmail.com",
+  "type": "google"
+ }
+}

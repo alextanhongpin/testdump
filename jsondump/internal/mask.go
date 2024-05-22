@@ -1,4 +1,4 @@
-package json
+package internal
 
 import (
 	"bytes"
@@ -7,24 +7,25 @@ import (
 	"slices"
 	"strconv"
 
-	"github.com/alextanhongpin/dump/json/internal"
 	"github.com/alextanhongpin/dump/pkg/reviver"
 )
 
-func CueProcessor(b []byte) ([]byte, error) {
-
-	return b, nil
-}
-
 func IndentProcessor(b []byte) ([]byte, error) {
+	if !json.Valid(b) {
+		return b, nil
+	}
+
 	var out bytes.Buffer
 	if err := json.Indent(&out, b, "", " "); err != nil {
 		return nil, err
 	}
+
 	return out.Bytes(), nil
 }
 
-func MaskFieldProcessor(mask string, fields ...string) Processor {
+// MaskFields masks the field names. It does not take into
+// consideration the path.
+func MaskFields(mask string, fields ...string) func([]byte) ([]byte, error) {
 	slices.Sort(fields)
 	fields = slices.Compact(fields)
 
@@ -51,7 +52,7 @@ func MaskFieldProcessor(mask string, fields ...string) Processor {
 	}
 }
 
-func MaskPathProcessor(mask string, paths ...string) Processor {
+func MaskPaths(mask string, paths ...string) func([]byte) ([]byte, error) {
 	slices.Sort(paths)
 	paths = slices.Compact(paths)
 
@@ -77,9 +78,11 @@ func MaskPathProcessor(mask string, paths ...string) Processor {
 	}
 }
 
+// MaskPathsFromStructTag mask the fields with the tag `mask:"true".
+// All fields will have the same mask value.
 func MaskPathsFromStructTag(a any) []string {
 	var maskPaths []string
-	internal.IterStructFields(a, func(k string, f reflect.StructField, v reflect.Value) {
+	IterStructFields(a, func(k string, f reflect.StructField, v reflect.Value) {
 		// `mask:"true"`
 		tag := f.Tag.Get("mask")
 		ok, _ := strconv.ParseBool(tag)
@@ -93,8 +96,8 @@ func MaskPathsFromStructTag(a any) []string {
 
 func IgnorePathsFromStructTag(a any) []string {
 	var maskPaths []string
-	internal.IterStructFields(a, func(k string, f reflect.StructField, v reflect.Value) {
-		// `cmp:"ignore"`
+	IterStructFields(a, func(k string, f reflect.StructField, v reflect.Value) {
+		// `cmp:"-"`
 		tag := f.Tag.Get("cmp")
 		if tag == "-" {
 			maskPaths = append(maskPaths, k)
