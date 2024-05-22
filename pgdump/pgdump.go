@@ -82,7 +82,7 @@ func dump(t *testing.T, received *SQL, opts ...Option) error {
 func toMap(s []any) (any, error) {
 	m := make(map[string]any)
 	for k, v := range s {
-		m[fmt.Sprintf(":v%d", k+1)] = v
+		m[fmt.Sprintf("$%d", k+1)] = v
 	}
 
 	// Marshal/unmarshal to avoid type issues such as
