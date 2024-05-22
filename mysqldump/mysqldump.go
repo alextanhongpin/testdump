@@ -14,20 +14,20 @@ type Option interface {
 	isOption()
 }
 
-type Name string
+type File string
 
-func (n Name) isOption() {}
+func (n File) isOption() {}
 
 type option struct {
-	Name string
+	File string
 }
 
 func newOption(opts ...Option) option {
 	var o option
 	for _, opt := range opts {
 		switch v := opt.(type) {
-		case Name:
-			o.Name = string(v)
+		case File:
+			o.File = string(v)
 		}
 	}
 	return o
@@ -47,7 +47,7 @@ func dump(t *testing.T, received *SQL, opts ...Option) error {
 		return err
 	}
 
-	file := filepath.Join("testdata", fmt.Sprintf("%s.sql", filepath.Join(t.Name(), opt.Name)))
+	file := filepath.Join("testdata", fmt.Sprintf("%s.sql", filepath.Join(t.Name(), opt.File)))
 	overwrite := false
 	written, err := internal.WriteFile(file, receivedBytes, overwrite)
 	if err != nil {
@@ -69,8 +69,8 @@ func dump(t *testing.T, received *SQL, opts ...Option) error {
 	}
 
 	if err := Compare(snapshot, received); err != nil {
-		if opt.Name != "" {
-			return fmt.Errorf("%s: %w", opt.Name, err)
+		if opt.File != "" {
+			return fmt.Errorf("%s: %w", opt.File, err)
 		}
 
 		return err

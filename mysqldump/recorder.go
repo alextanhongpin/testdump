@@ -71,7 +71,7 @@ func (r *Recorder) log(method, query string, args ...any) {
 		fileName = fmt.Sprintf("%s#%d", fileName, 1)
 	}
 
-	r.opts[r.id] = append(r.opts[r.id], Name(fileName))
+	r.opts[r.id] = append(r.opts[r.id], File(fileName))
 	r.dumps = append(r.dumps, &SQL{
 		Args:  args,
 		Query: query,
