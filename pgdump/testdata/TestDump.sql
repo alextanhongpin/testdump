@@ -1,8 +1,5 @@
 -- query --
-SELECT *
-  FROM users
-  WHERE name = $1
-    AND age = $2
+SELECT * FROM users WHERE name = $1 AND age = $2
 
 -- args --
 {

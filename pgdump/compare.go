@@ -1,20 +1,32 @@
 package pgdump
 
 import (
+	"encoding/json"
 	"fmt"
 
-	"github.com/alextanhongpin/dump/pkg/diff"
+	"github.com/google/go-cmp/cmp"
 	pg_query "github.com/pganalyze/pg_query_go/v4"
 )
 
-func Compare(snapshot, received *SQL) error {
+type SQL struct {
+	Query string
+	Args  []any
+}
+
+type CompareOption struct {
+	CmpOpts []cmp.Option
+}
+
+type comparer func(a, b any, opts ...cmp.Option) error
+
+func (snapshot *SQL) Compare(received *SQL, opt CompareOption, cmp comparer) error {
 	ok, err := CompareQuery(snapshot.Query, received.Query)
 	if err != nil {
 		return err
 	}
 
 	if !ok {
-		return fmt.Errorf("Query: %w", diff.ANSI(snapshot.Query, received.Query))
+		return fmt.Errorf("Query: %w", cmp(snapshot.Query, received.Query))
 	}
 
 	lhs, err := toMap(snapshot.Args)
@@ -26,7 +38,7 @@ func Compare(snapshot, received *SQL) error {
 		return err
 	}
 
-	if err := diff.ANSI(lhs, rhs); err != nil {
+	if err := cmp(lhs, rhs, opt.CmpOpts...); err != nil {
 		return fmt.Errorf("Args: %w", err)
 	}
 
@@ -45,4 +57,29 @@ func CompareQuery(a, b string) (bool, error) {
 	}
 
 	return fa == fb, nil
+}
+
+// toMap converts the slice args into a map for better diff.
+// Each key is named `$n`, where `n` indicates the index of the arg in the
+// slice.
+func toMap(s []any) (any, error) {
+	m := make(map[string]any)
+	for k, v := range s {
+		m[fmt.Sprintf("$%d", k+1)] = v
+	}
+
+	// Marshal/unmarshal to avoid type issues such as
+	// int/float.
+	// In JSON, there's only float.
+	b, err := json.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+
+	var a any
+	if err := json.Unmarshal(b, &a); err != nil {
+		return nil, err
+	}
+
+	return a, nil
 }

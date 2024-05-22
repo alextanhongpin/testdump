@@ -65,11 +65,7 @@ func (r *Recorder) log(method, query string, args ...any) {
 
 	fileName := method
 	r.seen[fileName]++
-	if n := r.seen[fileName]; n > 1 {
-		fileName = fmt.Sprintf("%s#%d", fileName, n)
-	} else {
-		fileName = fmt.Sprintf("%s#%d", fileName, 1)
-	}
+	fileName = fmt.Sprintf("%s#%d", fileName, r.seen[fileName])
 
 	r.opts[r.id] = append(r.opts[r.id], File(fileName))
 	r.dumps = append(r.dumps, &SQL{

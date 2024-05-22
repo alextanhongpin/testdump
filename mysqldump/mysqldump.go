@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	"github.com/alextanhongpin/dump/pkg/diff"
@@ -48,7 +49,7 @@ func dump(t *testing.T, received *SQL, opts ...Option) error {
 	}
 
 	file := filepath.Join("testdata", fmt.Sprintf("%s.sql", filepath.Join(t.Name(), opt.file)))
-	overwrite := false
+	overwrite, _ := strconv.ParseBool(os.Getenv(opt.env))
 	written, err := internal.WriteFile(file, receivedBytes, overwrite)
 	if err != nil {
 		return err
