@@ -11,7 +11,7 @@ import (
 
 const ignoreVal = "[IGNORED]"
 
-func IndentTransformer(b []byte) ([]byte, error) {
+func Indent(b []byte) ([]byte, error) {
 	if !json.Valid(b) {
 		return b, nil
 	}

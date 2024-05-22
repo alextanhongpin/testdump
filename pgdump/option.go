@@ -12,7 +12,7 @@ type option struct {
 	transformers []Transformer
 }
 
-func newOption(opts ...Option) option {
+func newOption(opts ...Option) *option {
 	o := new(option)
 	o.colors = true
 
