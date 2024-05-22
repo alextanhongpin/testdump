@@ -17,7 +17,7 @@ The `dump/http` package provides utilities for dumping HTTP requests and respons
 
 ### Creating a New Handler
 
-You can create a new handler using the `NewHandler` function. This function takes a `testing.T` instance, an `http.Handler`, and an optional list of middlewares. Here's an example:
+You can create a new handler using the `NewHandler` function. This function takes a `testing.T` instance, an `http.Handler`, and an optional list of transformers. Here's an example:
 
 ```go
 h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -82,13 +82,13 @@ Hello, World!
 
 ```
 
-### Middlewares
+### Transformers
 
-Middlewares allows modifying the request/response body before snapshotting. 
+Transformers allows modifying the request/response body before snapshotting. 
 You can for example mask headers that contains random or sensitive values.
 
 ```go
-mw := []httpdump.Middleware{
+mw := []httpdump.Transformer{
   // Second middleware will overwrite the first.
   httpdump.MaskRequestHeader("[REDACTED]", "Date"),
   httpdump.MaskResponseHeader("[REDACTED]", "Date"),

@@ -12,11 +12,11 @@ import (
 	"github.com/alextanhongpin/dump/pkg/reviver"
 )
 
-type Middleware func(w *http.Response, r *http.Request) error
+type Transformer func(w *http.Response, r *http.Request) error
 
-func (m Middleware) isOption() {}
+func (t Transformer) isOption() {}
 
-func MaskRequestHeaders(mask string, fields ...string) Middleware {
+func MaskRequestHeaders(mask string, fields ...string) Transformer {
 	return func(w *http.Response, r *http.Request) error {
 		for _, field := range fields {
 			v := r.Header.Get(field)
@@ -31,7 +31,7 @@ func MaskRequestHeaders(mask string, fields ...string) Middleware {
 	}
 }
 
-func MaskResponseHeaders(mask string, fields ...string) Middleware {
+func MaskResponseHeaders(mask string, fields ...string) Transformer {
 	return func(w *http.Response, r *http.Request) error {
 		for _, field := range fields {
 			v := w.Header.Get(field)
@@ -46,7 +46,7 @@ func MaskResponseHeaders(mask string, fields ...string) Middleware {
 	}
 }
 
-func MaskRequestFields(mask string, fields ...string) Middleware {
+func MaskRequestFields(mask string, fields ...string) Transformer {
 	return func(w *http.Response, r *http.Request) error {
 		defer r.Body.Close()
 
@@ -75,8 +75,8 @@ func MaskRequestFields(mask string, fields ...string) Middleware {
 			return nil
 		}
 
-		var m map[string]any
-		if err := reviver.Unmarshal(b, &m, func(key string, val any) (any, error) {
+		var t map[string]any
+		if err := reviver.Unmarshal(b, &t, func(key string, val any) (any, error) {
 			path := reviver.Base(key)
 			for _, f := range fields {
 				if f == path {
@@ -92,7 +92,7 @@ func MaskRequestFields(mask string, fields ...string) Middleware {
 			return err
 		}
 
-		b, err = json.Marshal(m)
+		b, err = json.Marshal(t)
 		if err != nil {
 			return err
 		}
@@ -102,7 +102,7 @@ func MaskRequestFields(mask string, fields ...string) Middleware {
 	}
 }
 
-func MaskResponseFields(mask string, fields ...string) Middleware {
+func MaskResponseFields(mask string, fields ...string) Transformer {
 	return func(w *http.Response, r *http.Request) error {
 		defer w.Body.Close()
 
@@ -111,12 +111,12 @@ func MaskResponseFields(mask string, fields ...string) Middleware {
 			return err
 		}
 		if !json.Valid(b) {
-			r.Body = io.NopCloser(bytes.NewReader(b))
+			w.Body = io.NopCloser(bytes.NewReader(b))
 			return nil
 		}
 
-		var m map[string]any
-		if err := reviver.Unmarshal(b, &m, func(key string, val any) (any, error) {
+		var t map[string]any
+		if err := reviver.Unmarshal(b, &t, func(key string, val any) (any, error) {
 			path := reviver.Base(key)
 			for _, f := range fields {
 				if f == path {
@@ -132,7 +132,7 @@ func MaskResponseFields(mask string, fields ...string) Middleware {
 			return err
 		}
 
-		b, err = json.Marshal(m)
+		b, err = json.Marshal(t)
 		if err != nil {
 			return err
 		}

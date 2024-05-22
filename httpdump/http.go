@@ -9,18 +9,25 @@ import (
 	"testing"
 
 	"github.com/alextanhongpin/dump/httpdump/internal"
+	"github.com/alextanhongpin/dump/pkg/diff"
 )
 
+var d *dumper
+
+func init() {
+	d = new(dumper)
+}
+
 func Handler(t *testing.T, h http.Handler, opts ...Option) http.Handler {
-	return New(opts...).Handler(t, h)
+	return d.Handler(t, h, opts...)
 }
 
 func HandlerFunc(t *testing.T, h http.HandlerFunc, opts ...Option) http.Handler {
-	return New(opts...).HandlerFunc(t, h)
+	return d.HandlerFunc(t, h, opts...)
 }
 
 func Dump(t *testing.T, w *http.Response, r *http.Request, opts ...Option) {
-	New(opts...).Dump(t, w, r)
+	d.Dump(t, w, r, opts...)
 }
 
 type dumper struct {
@@ -36,42 +43,34 @@ func New(opts ...Option) *dumper {
 }
 
 func (d *dumper) Handler(t *testing.T, h http.Handler, opts ...Option) http.Handler {
-	opts = append(d.opts, opts...)
-
 	return &handler{
-		t:   t,
-		h:   http.Handler(h),
-		opt: newOption(opts...),
+		t:    t,
+		h:    http.Handler(h),
+		opts: append(d.opts, opts...),
 	}
 }
 
 func (d *dumper) HandlerFunc(t *testing.T, h http.HandlerFunc, opts ...Option) http.Handler {
-	opts = append(d.opts, opts...)
-
 	return &handler{
-		t:   t,
-		h:   h,
-		opt: newOption(opts...),
+		t:    t,
+		h:    h,
+		opts: append(d.opts, opts...),
 	}
 }
 
 func (d *dumper) Dump(t *testing.T, w *http.Response, r *http.Request, opts ...Option) {
-	opts = append(d.opts, opts...)
-	h := &handler{
-		t:   t,
-		opt: newOption(opts...),
-	}
-
 	t.Helper()
-	if err := h.dump(w, r); err != nil {
+
+	opts = append(d.opts, opts...)
+	if err := dump(t, &HTTP{Request: r, Response: w}, opts...); err != nil {
 		t.Error(err)
 	}
 }
 
 type handler struct {
-	t   *testing.T
-	h   http.Handler
-	opt *option
+	t    *testing.T
+	h    http.Handler
+	opts []Option
 }
 
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -92,28 +91,39 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.h.ServeHTTP(wr, rc)
 
 	// Dump the request and response to the file.
-	if err := h.dump(wr.Result(), r); err != nil {
+	if err := dump(t, &HTTP{
+		Response: wr.Result(),
+		Request:  r,
+	}, h.opts...); err != nil {
 		t.Fatal(err)
 	}
 }
 
 // dump executes the snapshot process.
-func (h *handler) dump(w *http.Response, r *http.Request) error {
-	received := &HTTP{
-		Request:  r,
-		Response: w,
-	}
+func dump(t *testing.T, h2p *HTTP, opts ...Option) error {
+	opt := newOption(opts...)
 
-	var err error
-	received, err = h.apply(received)
+	received, err := h2p.Clone()
 	if err != nil {
 		return err
 	}
 
-	file := fmt.Sprintf("testdata/%s.http", h.t.Name())
+	for _, transform := range opt.transformers {
+		if err := transform(received.Response, received.Request); err != nil {
+			return err
+		}
+	}
+
+	file := fmt.Sprintf("testdata/%s.http", t.Name())
+	src, err := Write(received, opt.indentJSON)
+	if err != nil {
+		return err
+	}
+
+	update, _ := strconv.ParseBool(os.Getenv(opt.env))
 
 	// Write the received data to the file.
-	written, err := h.write(file, received)
+	written, err := internal.WriteFile(file, src, update)
 	if err != nil {
 		return err
 	}
@@ -124,57 +134,20 @@ func (h *handler) dump(w *http.Response, r *http.Request) error {
 	}
 
 	// Read the snapshot data from the file.
-	snapshot, err := h.read(file)
+	b, err := os.ReadFile(file)
 	if err != nil {
 		return err
 	}
 
-	return snapshot.Compare(received, h.opt.cmpOpt)
-}
-
-// apply applies the middleware that modifies the request and response.
-// The request and response is cloned before the modification, so it does not
-// affect the original request or response.
-func (h *handler) apply(h2p *HTTP) (*HTTP, error) {
-	r, err := internal.CloneRequest(h2p.Request)
+	snapshot, err := Read(b)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	w, err := internal.CloneResponse(h2p.Response)
-	if err != nil {
-		return nil, err
+	comparer := diff.Text
+	if opt.colors {
+		comparer = diff.ANSI
 	}
 
-	for _, m := range h.opt.middlewares {
-		if err := m(w, r); err != nil {
-			return nil, err
-		}
-	}
-
-	return &HTTP{
-		Request:  r,
-		Response: w,
-	}, nil
-}
-
-// write writes the received data to the file, only if it doesn't exist.
-func (h *handler) write(file string, h2p *HTTP) (bool, error) {
-	src, err := Write(h2p, h.opt.indentJSON)
-	if err != nil {
-		return false, err
-	}
-
-	update, _ := strconv.ParseBool(os.Getenv(h.opt.env))
-	return internal.WriteFile(file, src, update)
-}
-
-// read reads the snapshot data from the file.
-func (h *handler) read(file string) (*HTTP, error) {
-	b, err := os.ReadFile(file)
-	if err != nil {
-		return nil, err
-	}
-
-	return Read(b)
+	return snapshot.Compare(received, opt.cmpOpt, comparer)
 }

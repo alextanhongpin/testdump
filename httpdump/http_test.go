@@ -210,7 +210,7 @@ func TestJSONDynamicFields(t *testing.T) {
 	hd.ServeHTTP(wr, r)
 }
 
-func TestMiddleware(t *testing.T) {
+func TestTransformer(t *testing.T) {
 	h := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		fmt.Fprint(w, "hello world")
@@ -228,7 +228,7 @@ func TestMiddleware(t *testing.T) {
 	hd.ServeHTTP(wr, r)
 }
 
-func TestCustomMiddleware(t *testing.T) {
+func TestCustomTransformer(t *testing.T) {
 	h := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		fmt.Fprint(w, "hello world")
@@ -239,7 +239,7 @@ func TestCustomMiddleware(t *testing.T) {
 	r.Header.Set("Content-Type", "application/json")
 
 	opts := []httpdump.Option{
-		httpdump.Middleware(func(w *http.Response, r *http.Request) error {
+		httpdump.Transformer(func(w *http.Response, r *http.Request) error {
 			defer w.Body.Close()
 			b, err := io.ReadAll(w.Body)
 			if err != nil {
@@ -254,7 +254,7 @@ func TestCustomMiddleware(t *testing.T) {
 	hd.ServeHTTP(wr, r)
 }
 
-func TestMiddlewareChain(t *testing.T) {
+func TestTransformerChain(t *testing.T) {
 	h := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprint(w, "hello world")

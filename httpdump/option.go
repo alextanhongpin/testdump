@@ -9,13 +9,14 @@ type Option interface {
 }
 
 type option struct {
-	middlewares []Middleware
-	cmpOpt      CompareOption
+	transformers []Transformer
+	cmpOpt       CompareOption
 	// The environment name to update the file.
 	env string
 	// Indent the payload if the type is json. This changes the header's
 	// content-length.
 	indentJSON bool
+	colors     bool
 }
 
 func newOption(opts ...Option) *option {
@@ -24,8 +25,8 @@ func newOption(opts ...Option) *option {
 
 	for _, o := range opts {
 		switch v := o.(type) {
-		case Middleware:
-			opt.middlewares = append(opt.middlewares, v)
+		case Transformer:
+			opt.transformers = append(opt.transformers, v)
 		case modifier:
 			v(opt)
 		}
@@ -54,6 +55,12 @@ func CmpOpt(opt CompareOption) modifier {
 func Env(env string) modifier {
 	return func(o *option) {
 		o.env = env
+	}
+}
+
+func Colors(colors bool) modifier {
+	return func(o *option) {
+		o.colors = colors
 	}
 }
 
