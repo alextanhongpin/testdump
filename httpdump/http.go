@@ -1,4 +1,4 @@
-package http
+package httpdump
 
 import (
 	"fmt"
@@ -8,11 +8,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/alextanhongpin/dump/http/internal"
+	"github.com/alextanhongpin/dump/httpdump/internal"
 )
-
-// Env is the environment variable to enable update mode.
-var Env = "TESTDATA_UPDATE"
 
 type handler struct {
 	t   *testing.T
@@ -111,7 +108,7 @@ func (h *handler) apply(w *http.Response, r *http.Request) (*http.Response, *htt
 		return nil, nil, err
 	}
 
-	for _, m := range h.opt.mws {
+	for _, m := range h.opt.middlewares {
 		if err := m(wc, rc); err != nil {
 			return nil, nil, err
 		}
@@ -127,7 +124,7 @@ func (h *handler) write(file string, wc *http.Response, rc *http.Request) (bool,
 		return false, err
 	}
 
-	update, _ := strconv.ParseBool(os.Getenv(Env))
+	update, _ := strconv.ParseBool(os.Getenv(h.opt.env))
 	return internal.WriteFile(file, src, update)
 }
 

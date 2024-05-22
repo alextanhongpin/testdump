@@ -1,4 +1,4 @@
-package http_test
+package httpdump_test
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	httpdump "github.com/alextanhongpin/dump/http"
+	"github.com/alextanhongpin/dump/httpdump"
 )
 
 func TestDump(t *testing.T) {

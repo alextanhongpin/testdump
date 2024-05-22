@@ -1,4 +1,4 @@
-package http
+package httpdump
 
 import (
 	"bytes"
@@ -10,10 +10,6 @@ import (
 	"strings"
 
 	"github.com/alextanhongpin/dump/pkg/reviver"
-)
-
-const (
-	maskValue = "[REDACTED]"
 )
 
 type Middleware func(w *http.Response, r *http.Request) error

@@ -1,10 +1,10 @@
-package http
+package httpdump
 
 import (
 	"net/http"
 	"testing"
 
-	"github.com/alextanhongpin/dump/http/internal"
+	"github.com/alextanhongpin/dump/httpdump/internal"
 )
 
 type RoundTripper struct {

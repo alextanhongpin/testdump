@@ -1,4 +1,4 @@
-package http
+package httpdump
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/alextanhongpin/dump/http/internal"
+	"github.com/alextanhongpin/dump/httpdump/internal"
 	"github.com/alextanhongpin/dump/pkg/diff"
 	"github.com/google/go-cmp/cmp"
 )

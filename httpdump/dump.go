@@ -1,11 +1,11 @@
-package http
+package httpdump
 
 import (
 	"bufio"
 	"bytes"
 	"net/http"
 
-	"github.com/alextanhongpin/dump/http/internal"
+	"github.com/alextanhongpin/dump/httpdump/internal"
 	"golang.org/x/tools/txtar"
 )
 
