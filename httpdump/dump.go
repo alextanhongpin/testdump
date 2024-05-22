@@ -10,14 +10,14 @@ import (
 )
 
 // Write writes the request/response pair to bytes.
-func Write(w *http.Response, r *http.Request, pretty bool) ([]byte, error) {
+func Write(h *HTTP, pretty bool) ([]byte, error) {
 	// Format the JSON body.
-	req, err := internal.DumpRequest(r, pretty)
+	req, err := internal.DumpRequest(h.Request, pretty)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := internal.DumpResponse(w, pretty)
+	res, err := internal.DumpResponse(h.Response, pretty)
 	if err != nil {
 		return nil, err
 	}
@@ -39,24 +39,26 @@ func Write(w *http.Response, r *http.Request, pretty bool) ([]byte, error) {
 }
 
 // Read reads the request/response pair from bytes.
-func Read(b []byte) (w *http.Response, r *http.Request, err error) {
+func Read(b []byte) (*HTTP, error) {
 	archive := txtar.Parse(b)
 
+	h := new(HTTP)
+	var err error
 	for _, f := range archive.Files {
 		b := bufio.NewReader(bytes.NewReader(f.Data))
 		switch f.Name {
 		case requestFile:
-			r, err = http.ReadRequest(b)
+			h.Request, err = http.ReadRequest(b)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 		case responseFile:
-			w, err = http.ReadResponse(b, nil)
+			h.Response, err = http.ReadResponse(b, nil)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 		}
 	}
 
-	return
+	return h, nil
 }

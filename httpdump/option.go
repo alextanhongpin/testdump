@@ -10,8 +10,7 @@ type Option interface {
 
 type option struct {
 	middlewares []Middleware
-	req         CompareOption
-	res         CompareOption
+	cmpOpt      CompareOption
 	// The environment name to update the file.
 	env string
 	// Indent the payload if the type is json. This changes the header's
@@ -45,15 +44,9 @@ func IndentJSON(indent bool) modifier {
 	}
 }
 
-func RequestCmpOpt(opt CompareOption) modifier {
+func CmpOpt(opt CompareOption) modifier {
 	return func(o *option) {
-		o.req = o.req.Merge(opt)
-	}
-}
-
-func ResponseCmpOpt(opt CompareOption) modifier {
-	return func(o *option) {
-		o.res = o.res.Merge(opt)
+		o.cmpOpt = o.cmpOpt.Merge(opt)
 	}
 }
 
@@ -66,24 +59,24 @@ func Env(env string) modifier {
 
 func IgnoreRequestHeaders(val ...string) modifier {
 	return func(o *option) {
-		o.req.Header = append(o.req.Header, internal.IgnoreMapEntries(val...))
+		o.cmpOpt.Request.Header = append(o.cmpOpt.Request.Header, internal.IgnoreMapEntries(val...))
 	}
 }
 
 func IgnoreResponseHeaders(val ...string) modifier {
 	return func(o *option) {
-		o.res.Header = append(o.res.Header, internal.IgnoreMapEntries(val...))
+		o.cmpOpt.Response.Header = append(o.cmpOpt.Response.Header, internal.IgnoreMapEntries(val...))
 	}
 }
 
 func IgnoreRequestFields(val ...string) modifier {
 	return func(o *option) {
-		o.req.Body = append(o.req.Body, internal.IgnoreMapEntries(val...))
+		o.cmpOpt.Request.Body = append(o.cmpOpt.Request.Body, internal.IgnoreMapEntries(val...))
 	}
 }
 
 func IgnoreResponseFields(val ...string) modifier {
 	return func(o *option) {
-		o.res.Body = append(o.res.Body, internal.IgnoreMapEntries(val...))
+		o.cmpOpt.Response.Body = append(o.cmpOpt.Response.Body, internal.IgnoreMapEntries(val...))
 	}
 }

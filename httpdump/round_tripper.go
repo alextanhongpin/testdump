@@ -27,11 +27,7 @@ func (rt *RoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	}
 
 	w, err := http.DefaultTransport.RoundTrip(r)
-
-	h := Handler(rt.t, nil, rt.opts...)
-	if err := h.dump(w, rc); err != nil {
-		return nil, err
-	}
+	New(rt.opts...).Dump(rt.t, w, rc)
 
 	return w, err
 }
