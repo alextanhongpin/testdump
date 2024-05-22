@@ -14,9 +14,7 @@ import (
 
 type Transformer func(w *http.Response, r *http.Request) error
 
-func (t Transformer) isOption() {}
-
-func MaskRequestHeaders(mask string, fields ...string) Transformer {
+func maskRequestHeaders(mask string, fields ...string) Transformer {
 	return func(w *http.Response, r *http.Request) error {
 		for _, field := range fields {
 			v := r.Header.Get(field)
@@ -31,7 +29,7 @@ func MaskRequestHeaders(mask string, fields ...string) Transformer {
 	}
 }
 
-func MaskResponseHeaders(mask string, fields ...string) Transformer {
+func maskResponseHeaders(mask string, fields ...string) Transformer {
 	return func(w *http.Response, r *http.Request) error {
 		for _, field := range fields {
 			v := w.Header.Get(field)
@@ -46,7 +44,7 @@ func MaskResponseHeaders(mask string, fields ...string) Transformer {
 	}
 }
 
-func MaskRequestFields(mask string, fields ...string) Transformer {
+func maskRequestFields(mask string, fields ...string) Transformer {
 	return func(w *http.Response, r *http.Request) error {
 		defer r.Body.Close()
 
@@ -102,7 +100,7 @@ func MaskRequestFields(mask string, fields ...string) Transformer {
 	}
 }
 
-func MaskResponseFields(mask string, fields ...string) Transformer {
+func maskResponseFields(mask string, fields ...string) Transformer {
 	return func(w *http.Response, r *http.Request) error {
 		defer w.Body.Close()
 

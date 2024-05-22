@@ -239,7 +239,7 @@ func TestCustomTransformer(t *testing.T) {
 	r.Header.Set("Content-Type", "application/json")
 
 	opts := []httpdump.Option{
-		httpdump.Transformer(func(w *http.Response, r *http.Request) error {
+		httpdump.Transformers(func(w *http.Response, r *http.Request) error {
 			defer w.Body.Close()
 			b, err := io.ReadAll(w.Body)
 			if err != nil {
