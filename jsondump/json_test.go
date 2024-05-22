@@ -184,18 +184,18 @@ func TestMaskPaths(t *testing.T) {
 	jsondump.Dump(t, accounts, jsondump.MaskPaths("[MASKED]", []string{"$.email.email"}))
 }
 
-func TestCustomProcessor(t *testing.T) {
+func TestCustomTransformer(t *testing.T) {
 	jsondump.Dump(t, map[string]any{
 		"name": "John",
-	}, jsondump.Processor(func(b []byte) ([]byte, error) {
+	}, jsondump.Transformer(func(b []byte) ([]byte, error) {
 		return bytes.ToUpper(b), nil
 	}))
 }
 
-func TestMultipleProcessors(t *testing.T) {
+func TestMultipleTransformers(t *testing.T) {
 	jsondump.Dump(t, map[string]any{
 		"name": "John",
-	}, jsondump.Processor(
+	}, jsondump.Transformer(
 		func(b []byte) ([]byte, error) {
 			return bytes.ToLower(b), nil
 		},
@@ -258,7 +258,7 @@ let url = =~ "^https://(.+)"
 		},
 	}
 
-	jsondump.Dump(t, u, jsondump.Processor(func(b []byte) ([]byte, error) {
+	jsondump.Dump(t, u, jsondump.Transformer(func(b []byte) ([]byte, error) {
 		return b, c.Validate(b)
 	}))
 }
@@ -290,7 +290,7 @@ name!: string & strings.MinRunes(1)`,
 		},
 	}
 
-	jsondump.Dump(t, u, jsondump.Processor(func(b []byte) ([]byte, error) {
+	jsondump.Dump(t, u, jsondump.Transformer(func(b []byte) ([]byte, error) {
 		return b, c.Validate(b)
 	}))
 }
@@ -319,7 +319,7 @@ func TestCUESchemaPath(t *testing.T) {
 		},
 	}
 
-	jsondump.Dump(t, u, jsondump.Processor(func(b []byte) ([]byte, error) {
+	jsondump.Dump(t, u, jsondump.Transformer(func(b []byte) ([]byte, error) {
 		return b, c.Validate(b)
 	}))
 }

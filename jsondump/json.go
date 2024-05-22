@@ -12,16 +12,19 @@ import (
 	"github.com/alextanhongpin/dump/pkg/diff"
 )
 
+var d *dumper
+
+func init() {
+	d = new(dumper)
+}
+
 // New creates a new dumper with the given options.
 // The dumper can be used to dump values to a file.
-func New(opts ...Option) interface {
-	Dump(t *testing.T, v any, opts ...Option)
-} {
+func New(opts ...Option) *dumper {
 	return &dumper{opts: opts}
 }
 
 func Dump(t *testing.T, v any, opts ...Option) {
-	d := &dumper{}
 	d.Dump(t, v, opts...)
 }
 
@@ -32,7 +35,8 @@ type dumper struct {
 func (d *dumper) Dump(t *testing.T, v any, opts ...Option) {
 	t.Helper()
 
-	if err := dump(t, v, append(d.opts, opts...)...); err != nil {
+	opts = append(d.opts, opts...)
+	if err := dump(t, v, opts...); err != nil {
 		t.Error(err)
 	}
 }
@@ -46,8 +50,8 @@ func dump(t *testing.T, v any, opts ...Option) error {
 		return err
 	}
 
-	for _, p := range opt.Processors {
-		receivedBytes, err = p(receivedBytes)
+	for _, transform := range opt.transformers {
+		receivedBytes, err = transform(receivedBytes)
 		if err != nil {
 			return err
 		}
@@ -56,10 +60,10 @@ func dump(t *testing.T, v any, opts ...Option) error {
 	file := filepath.Join(
 		"testdata",
 		t.Name(),
-		fmt.Sprintf("%s.json", internal.Or(opt.File, internal.TypeName(v))),
+		fmt.Sprintf("%s.json", internal.Or(opt.file, internal.TypeName(v))),
 	)
 
-	overwrite, _ := strconv.ParseBool(os.Getenv(opt.Env))
+	overwrite, _ := strconv.ParseBool(os.Getenv(opt.env))
 	written, err := internal.WriteFile(file, receivedBytes, overwrite)
 	if err != nil {
 		return err
@@ -77,13 +81,13 @@ func dump(t *testing.T, v any, opts ...Option) error {
 	// Since google's cmp does not have an option to ignore paths, we just mask
 	// the values before comparing.
 	// The masked values will not be written to the file.
-	for _, p := range opt.IgnorePathsProcessors {
-		snapshotBytes, err = p(snapshotBytes)
+	for _, transform := range opt.ignorePathsTransformers {
+		snapshotBytes, err = transform(snapshotBytes)
 		if err != nil {
 			return err
 		}
 
-		receivedBytes, err = p(receivedBytes)
+		receivedBytes, err = transform(receivedBytes)
 		if err != nil {
 			return err
 		}
@@ -98,5 +102,10 @@ func dump(t *testing.T, v any, opts ...Option) error {
 		return err
 	}
 
-	return diff.ANSI(snapshot, received, opt.CmpOpts...)
+	comparer := diff.Text
+	if opt.colors {
+		comparer = diff.ANSI
+	}
+
+	return comparer(snapshot, received, opt.cmpOpts...)
 }
