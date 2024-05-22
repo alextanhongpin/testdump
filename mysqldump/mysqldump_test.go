@@ -2,8 +2,10 @@ package mysqldump_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/alextanhongpin/dump/mysqldump"
+	"github.com/alextanhongpin/dump/pkg/sqlformat"
 )
 
 func TestDump(t *testing.T) {
@@ -13,6 +15,35 @@ func TestDump(t *testing.T) {
 	}
 
 	mysqldump.Dump(t, dump)
+}
+
+func TestIgnoreFields(t *testing.T) {
+	dump := &mysqldump.SQL{
+		Query: `select * from users where name = ? and created_at > ?`,
+		Args:  []any{"John", time.Now()},
+	}
+
+	mysqldump.Dump(t, dump, mysqldump.IgnoreArgs(":v2"))
+}
+
+func TestTransformer(t *testing.T) {
+	prettySQL := func(s *mysqldump.SQL) error {
+		q, err := sqlformat.Format(s.Query)
+		if err != nil {
+			return err
+		}
+		s.Query = q
+		return nil
+	}
+
+	dump := &mysqldump.SQL{
+		Query: `select * from users where name = ? and id = ?`,
+		Args:  []any{"John", 1},
+	}
+
+	// Add pretty print sql for all dumps.
+	md := mysqldump.New(mysqldump.Transformers(prettySQL))
+	md.Dump(t, dump)
 }
 
 func TestCompareQuery(t *testing.T) {

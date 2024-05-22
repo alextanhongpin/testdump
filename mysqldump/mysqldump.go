@@ -1,40 +1,40 @@
 package mysqldump
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/alextanhongpin/dump/pkg/diff"
+
 	"github.com/alextanhongpin/dump/mysqldump/internal"
 )
 
-type Option interface {
-	isOption()
+var d *dumper
+
+func init() {
+	d = new(dumper)
 }
 
-type File string
-
-func (n File) isOption() {}
-
-type option struct {
-	File string
-}
-
-func newOption(opts ...Option) option {
-	var o option
-	for _, opt := range opts {
-		switch v := opt.(type) {
-		case File:
-			o.File = string(v)
-		}
+func New(opts ...Option) *dumper {
+	return &dumper{
+		opts: opts,
 	}
-	return o
 }
 
 func Dump(t *testing.T, received *SQL, opts ...Option) {
+	d.Dump(t, received, opts...)
+}
+
+type dumper struct {
+	opts []Option
+}
+
+func (d *dumper) Dump(t *testing.T, received *SQL, opts ...Option) {
 	t.Helper()
+
+	opts = append(d.opts, opts...)
 	if err := dump(t, received, opts...); err != nil {
 		t.Error(err)
 	}
@@ -42,12 +42,12 @@ func Dump(t *testing.T, received *SQL, opts ...Option) {
 
 func dump(t *testing.T, received *SQL, opts ...Option) error {
 	opt := newOption(opts...)
-	receivedBytes, err := Write(received)
+	receivedBytes, err := Write(received, opt.transformers...)
 	if err != nil {
 		return err
 	}
 
-	file := filepath.Join("testdata", fmt.Sprintf("%s.sql", filepath.Join(t.Name(), opt.File)))
+	file := filepath.Join("testdata", fmt.Sprintf("%s.sql", filepath.Join(t.Name(), opt.file)))
 	overwrite := false
 	written, err := internal.WriteFile(file, receivedBytes, overwrite)
 	if err != nil {
@@ -68,35 +68,18 @@ func dump(t *testing.T, received *SQL, opts ...Option) error {
 		return err
 	}
 
-	if err := Compare(snapshot, received); err != nil {
-		if opt.File != "" {
-			return fmt.Errorf("%s: %w", opt.File, err)
+	comparer := diff.Text
+	if opt.colors {
+		comparer = diff.ANSI
+	}
+
+	if err := snapshot.Compare(received, opt.cmpOpt, comparer); err != nil {
+		if opt.file != "" {
+			return fmt.Errorf("%s: %w", opt.file, err)
 		}
 
 		return err
 	}
 
 	return nil
-}
-
-func toMap(s []any) (any, error) {
-	m := make(map[string]any)
-	for k, v := range s {
-		m[fmt.Sprintf(":v%d", k+1)] = v
-	}
-
-	// Marshal/unmarshal to avoid type issues such as
-	// int/float.
-	// In JSON, there's only float.
-	b, err := json.Marshal(m)
-	if err != nil {
-		return nil, err
-	}
-
-	var a any
-	if err := json.Unmarshal(b, &a); err != nil {
-		return nil, err
-	}
-
-	return a, nil
 }

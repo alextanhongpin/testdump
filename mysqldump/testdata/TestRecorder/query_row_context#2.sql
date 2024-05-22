@@ -1,10 +1,8 @@
 -- query --
-SELECT *
-  FROM users
-  WHERE id = :v1
+select * from users where id = :v1
 
 -- args --
 {
- "v1": 2
+ ":v1": 2
 }
 

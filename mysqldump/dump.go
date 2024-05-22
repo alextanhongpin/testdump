@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
 
-	"github.com/alextanhongpin/dump/pkg/sqlformat"
 	"golang.org/x/tools/txtar"
 	"vitess.io/vitess/go/vt/sqlparser"
 )
@@ -14,11 +15,6 @@ const (
 	querySection = "query"
 	argsSection  = "args"
 )
-
-type SQL struct {
-	Query string
-	Args  []any
-}
 
 func Read(b []byte) (*SQL, error) {
 	d := new(SQL)
@@ -38,8 +34,15 @@ func Read(b []byte) (*SQL, error) {
 
 			m, ok := a.(map[string]any)
 			if ok {
-				for _, v := range m {
-					d.Args = append(d.Args, v)
+				// Sort to ensure the order is consistent.
+				d.Args = make([]any, len(m))
+				for k, v := range m {
+					key := strings.ReplaceAll(k, ":v", "")
+					i, err := strconv.Atoi(key) // Index starts at 1
+					if err != nil {
+						return nil, err
+					}
+					d.Args[i-1] = v
 				}
 			}
 		}
@@ -48,15 +51,17 @@ func Read(b []byte) (*SQL, error) {
 	return d, nil
 }
 
-func Write(sql *SQL) ([]byte, error) {
+func Write(sql *SQL, transformers ...Transformer) ([]byte, error) {
 	q, err := normalize(sql.Query)
 	if err != nil {
 		return nil, err
 	}
+	sql.Query = q
 
-	q, err = sqlformat.Format(q)
-	if err != nil {
-		return nil, err
+	for _, transform := range transformers {
+		if err := transform(sql); err != nil {
+			return nil, err
+		}
 	}
 
 	// Convert args into key-value pairs.
@@ -67,7 +72,7 @@ func Write(sql *SQL) ([]byte, error) {
 		for i, v := range sql.Args {
 			// sqlparser replaces all '?' with ':v1', ':v2', ':vn'
 			// ...
-			k := fmt.Sprintf("v%d", i+1)
+			k := fmt.Sprintf(":v%d", i+1)
 			args[k] = v
 		}
 
@@ -81,7 +86,7 @@ func Write(sql *SQL) ([]byte, error) {
 	// Query.
 	arc.Files = append(arc.Files, txtar.File{
 		Name: querySection,
-		Data: appendNewLine([]byte(q)),
+		Data: appendNewLine([]byte(sql.Query)),
 	})
 
 	// Args.
