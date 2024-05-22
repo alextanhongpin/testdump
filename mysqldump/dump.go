@@ -7,6 +7,7 @@ import (
 
 	"github.com/alextanhongpin/dump/pkg/sqlformat"
 	"golang.org/x/tools/txtar"
+	"vitess.io/vitess/go/vt/sqlparser"
 )
 
 const (
@@ -98,4 +99,18 @@ func appendNewLine(b []byte) []byte {
 	b = append(b, '\n')
 	b = append(b, '\n')
 	return b
+}
+
+func normalize(q string) (string, error) {
+	parser := sqlparser.NewTestParser()
+	stmt, err := parser.Parse(q)
+	if err != nil {
+		return "", err
+	}
+
+	q = sqlparser.String(stmt)
+
+	// sqlparser replaces all ? with the format :v1, :v2,
+	// :vn ...
+	return q, nil
 }

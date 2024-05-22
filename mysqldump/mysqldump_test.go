@@ -15,7 +15,7 @@ func TestDump(t *testing.T) {
 	mysqldump.Dump(t, dump)
 }
 
-func TestCompare(t *testing.T) {
+func TestCompareQuery(t *testing.T) {
 	base := `select name from users where name = ?`
 	vars := []string{
 		base,
@@ -26,7 +26,7 @@ from users
 	}
 
 	for _, v := range vars {
-		ok, err := mysqldump.Compare(base, v)
+		ok, err := mysqldump.CompareQuery(base, v)
 		if err != nil {
 			t.Fatal(err)
 		}
