@@ -13,9 +13,11 @@ type option struct {
 }
 
 func newOption(opts ...Option) option {
-	var o option
+	o := new(option)
+	o.colors = true
+
 	for _, opt := range opts {
-		opt(&o)
+		opt(o)
 	}
 
 	return o

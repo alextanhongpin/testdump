@@ -22,6 +22,7 @@ type option struct {
 func newOption(opts ...Option) *option {
 	opt := new(option)
 	opt.indentJSON = true
+	opt.colors = true
 
 	for _, o := range opts {
 		switch v := o.(type) {
