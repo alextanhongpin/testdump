@@ -12,17 +12,17 @@ import (
 	"github.com/alextanhongpin/testdump/pkg/diff"
 )
 
-// d is a global variable that holds a pointer to a dumper instance.
-var d *dumper
+// d is a global variable that holds a pointer to a Dumper instance.
+var d *Dumper
 
 // init is a special function in Go that is called when the package is initialized.
 func init() {
-	// We initialize d with a new dumper instance.
-	d = new(dumper)
+	// We initialize d with a new Dumper instance.
+	d = new(Dumper)
 }
 
 // Handler is a function that takes a testing object, an HTTP handler, and a variadic list of options.
-// It returns an HTTP handler that is wrapped with the dumper's Handler method.
+// It returns an HTTP handler that is wrapped with the Dumper's Handler method.
 func Handler(t *testing.T, h http.Handler, opts ...Option) http.Handler {
 	return d.Handler(t, h, opts...)
 }
@@ -33,26 +33,26 @@ func HandlerFunc(t *testing.T, h http.HandlerFunc, opts ...Option) http.Handler 
 }
 
 // Dump is a function that takes a testing object, an HTTP response writer, an HTTP request, and a variadic list of options.
-// It calls the dumper's Dump method with these arguments.
+// It calls the Dumper's Dump method with these arguments.
 func Dump(t *testing.T, w *http.Response, r *http.Request, opts ...Option) {
 	d.Dump(t, w, r, opts...)
 }
 
-// dumper is a struct that holds a slice of options.
-type dumper struct {
+// Dumper is a struct that holds a slice of options.
+type Dumper struct {
 	opts []Option
 }
 
-// New is a function that takes a variadic list of options and returns a new dumper instance with these options.
-func New(opts ...Option) *dumper {
-	return &dumper{
+// New is a function that takes a variadic list of options and returns a new Dumper instance with these options.
+func New(opts ...Option) *Dumper {
+	return &Dumper{
 		opts: opts,
 	}
 }
 
-// Handler is a method on the dumper struct that takes a testing object, an HTTP handler, and a variadic list of options.
+// Handler is a method on the Dumper struct that takes a testing object, an HTTP handler, and a variadic list of options.
 // It returns a new handler instance with these values.
-func (d *dumper) Handler(t *testing.T, h http.Handler, opts ...Option) http.Handler {
+func (d *Dumper) Handler(t *testing.T, h http.Handler, opts ...Option) http.Handler {
 	return &handler{
 		t:    t,
 		h:    http.Handler(h),
@@ -61,7 +61,7 @@ func (d *dumper) Handler(t *testing.T, h http.Handler, opts ...Option) http.Hand
 }
 
 // HandlerFunc is similar to Handler, but it takes an HTTP handler function instead of an HTTP handler.
-func (d *dumper) HandlerFunc(t *testing.T, h http.HandlerFunc, opts ...Option) http.Handler {
+func (d *Dumper) HandlerFunc(t *testing.T, h http.HandlerFunc, opts ...Option) http.Handler {
 	return &handler{
 		t:    t,
 		h:    h,
@@ -69,9 +69,9 @@ func (d *dumper) HandlerFunc(t *testing.T, h http.HandlerFunc, opts ...Option) h
 	}
 }
 
-// Dump is a method on the dumper struct that takes a testing object, an HTTP response writer, an HTTP request, and a variadic list of options.
-// It appends the options to the dumper's options and then calls the dump function with the testing object, a new HTTP instance, and the options.
-func (d *dumper) Dump(t *testing.T, w *http.Response, r *http.Request, opts ...Option) {
+// Dump is a method on the Dumper struct that takes a testing object, an HTTP response writer, an HTTP request, and a variadic list of options.
+// It appends the options to the Dumper's options and then calls the dump function with the testing object, a new HTTP instance, and the options.
+func (d *Dumper) Dump(t *testing.T, w *http.Response, r *http.Request, opts ...Option) {
 	t.Helper()
 
 	opts = append(d.opts, opts...)
