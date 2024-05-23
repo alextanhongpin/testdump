@@ -4,22 +4,22 @@ GRPC bufconn/helloworld.v1.GreeterService/SayHello
 -- metadata --
 :authority: bufnet
 content-type: application/grpc
-metadata-date: 2024-05-23T17:45:02+08:00
+metadata-date: 2024-05-23T20:17:44+08:00
 user-agent: grpc-go/1.62.1
 
 -- client/helloworld.v1.SayHelloRequest --
 {
- "name": "2024-05-23T17:45:02+08:00"
+ "name": "2024-05-23T20:17:44+08:00"
 }
 
 -- server/helloworld.v1.SayHelloResponse --
 {
- "message": "Hello 2024-05-23T17:45:02+08:00"
+ "message": "Hello 2024-05-23T20:17:44+08:00"
 }
 
 -- header --
 content-type: application/grpc
-header-date: 2024-05-23T17:45:02+08:00
+header-date: 2024-05-23T20:17:44+08:00
 header-key: header-val
 header-key-bin: aGVhZGVyLXZhbC1iaW4
 
@@ -31,6 +31,6 @@ header-key-bin: aGVhZGVyLXZhbC1iaW4
 }
 
 -- trailer --
-trailer-date: 2024-05-23T17:45:02+08:00
+trailer-date: 2024-05-23T20:17:44+08:00
 trailer-key: trailer-val
 trailer-key-bin: dHJhaWxlci12YWwtYmlu

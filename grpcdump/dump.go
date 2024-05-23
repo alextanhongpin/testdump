@@ -13,6 +13,10 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+var (
+	ErrInvalidMetadata = fmt.Errorf("grpcdump: invalid metadata")
+)
+
 const (
 	lineFile         = "line"
 	headerFile       = "header"
@@ -25,7 +29,8 @@ const (
 	trailerFile      = "trailer"
 )
 
-// https://github.com/bradleyjkemp/grpc-tools/blob/master/grpc-dump/README.md
+// GRPC is a struct that represents a gRPC message.
+// It contains all the necessary fields for a complete gRPC message.
 type GRPC struct {
 	Addr           string      `json:"addr"`
 	FullMethod     string      `json:"full_method"`
@@ -39,14 +44,22 @@ type GRPC struct {
 	//HeaderIdx      int         `json:"-"`
 }
 
+// Service is a method on the GRPC struct.
+// It extracts and returns the service name from the FullMethod field.
 func (g *GRPC) Service() string {
 	return filepath.Dir(g.FullMethod)
 }
 
+// Method is a method on the GRPC struct.
+// It extracts and returns the method name from the FullMethod field.
 func (g *GRPC) Method() string {
 	return filepath.Base(g.FullMethod)
 }
 
+// Read is a function that takes a byte slice and returns a GRPC object and an error.
+// It attempts to unmarshal the byte slice into a GRPC object.
+// If the unmarshalling is successful, it returns the GRPC object and nil.
+// If the unmarshalling fails, it returns nil and the error.
 func Read(b []byte) (*GRPC, error) {
 	arc := txtar.Parse(b)
 
@@ -63,19 +76,19 @@ func Read(b []byte) (*GRPC, error) {
 			g.Addr = addr
 			g.FullMethod = fullMethod
 		case metadataFile:
-			md, err := ReadMetadata(data)
+			md, err := readMetadata(data)
 			if err != nil {
 				return nil, err
 			}
 			g.Metadata = md
 		case headerFile:
-			md, err := ReadMetadata(data)
+			md, err := readMetadata(data)
 			if err != nil {
 				return nil, err
 			}
 			g.Header = md
 		case trailerFile:
-			md, err := ReadMetadata(data)
+			md, err := readMetadata(data)
 			if err != nil {
 				return nil, err
 			}
@@ -115,54 +128,46 @@ func Read(b []byte) (*GRPC, error) {
 	return g, nil
 }
 
-func Write(g *GRPC, transformers ...Transformer) ([]byte, error) {
-	for _, transform := range transformers {
-		if err := transform(g); err != nil {
-			return nil, err
-		}
+// Write is a function that takes a pointer to a GRPC object and returns a byte
+// slice and an error.
+func Write(g *GRPC) ([]byte, error) {
+	var files []txtar.File
+	files = append(files, writeLine(g.Addr, g.FullMethod))
+	files = append(files, writeMetadata(metadataFile, g.Metadata))
+
+	msgs, err := writeMessages(g.IsClientStream, g.IsServerStream, g.Messages...)
+	if err != nil {
+		return nil, err
 	}
+	files = append(files, msgs...)
+	files = append(files, writeMetadata(headerFile, g.Header))
+
+	status, err := writeStatus(g.Status)
+	if err != nil {
+		return nil, err
+	}
+	files = append(files, status)
+	files = append(files, writeMetadata(trailerFile, g.Trailer))
 
 	arc := new(txtar.Archive)
-	arc.Files = append(arc.Files, txtar.File{lineFile, appendNewLine([]byte(WriteLine(g.Addr, g.FullMethod)))})
-	arc.Files = append(arc.Files, txtar.File{metadataFile, appendNewLine([]byte(WriteMetadata(g.Metadata)))})
-
-	//i := g.HeaderIdx
-	msgs, err := WriteMessages(g.IsClientStream, g.IsServerStream, g.Messages...)
-	if err != nil {
-		return nil, err
-	}
-	for i, f := range msgs {
-		msgs[i].Data = appendNewLine(f.Data)
-	}
-	arc.Files = append(arc.Files, msgs...)
-	arc.Files = append(arc.Files, txtar.File{headerFile, appendNewLine([]byte(WriteMetadata(g.Header)))})
-	//clientMsgs, err := WriteMessages(g.IsClientStream, g.IsServerStream, g.Messages[i:]...)
-	//if err != nil {
-	//return nil, err
-	//}
-	//for i, f := range clientMsgs {
-	//clientMsgs[i].Data = appendNewLine(f.Data)
-	//}
-
-	//arc.Files = append(arc.Files, clientMsgs...)
-
-	status, err := WriteStatus(g.Status)
-	if err != nil {
-		return nil, err
-	}
-	if status != nil {
-		arc.Files = append(arc.Files, txtar.File{statusFile, appendNewLine(status)})
+	for _, f := range files {
+		if len(bytes.TrimSpace(f.Data)) == 0 {
+			continue
+		}
+		arc.Files = append(arc.Files, f)
 	}
 
-	arc.Files = append(arc.Files, txtar.File{trailerFile, appendNewLine([]byte(WriteMetadata(g.Trailer)))})
 	return bytes.TrimSpace(txtar.Format(arc)), nil
 }
 
-func WriteLine(addr, fullMethod string) string {
-	return fmt.Sprintf("GRPC %s", filepath.Join(addr, fullMethod))
+func writeLine(addr, fullMethod string) txtar.File {
+	return txtar.File{
+		Name: lineFile,
+		Data: appendNewLine([]byte(fmt.Sprintf("GRPC %s", filepath.Join(addr, fullMethod)))),
+	}
 }
 
-func WriteMetadata(md metadata.MD) string {
+func writeMetadata(file string, md metadata.MD) txtar.File {
 	var keys []string
 	for k := range md {
 		keys = append(keys, k)
@@ -186,10 +191,13 @@ func WriteMetadata(md metadata.MD) string {
 		}
 	}
 
-	return strings.Join(result, "\n")
+	return txtar.File{
+		Name: file,
+		Data: appendNewLine([]byte(strings.Join(result, "\n"))),
+	}
 }
 
-func WriteMessages(isClientStream, isServerStream bool, msgs ...Message) ([]txtar.File, error) {
+func writeMessages(isClientStream, isServerStream bool, msgs ...Message) ([]txtar.File, error) {
 	files := make([]txtar.File, len(msgs))
 	for i, msg := range msgs {
 		// Pretty print the message.
@@ -209,7 +217,7 @@ func WriteMessages(isClientStream, isServerStream bool, msgs ...Message) ([]txta
 		} else if !isServer && !isClientStream {
 			prefix = clientFile
 		} else {
-			return nil, UnknownMessageOriginError(msg.Origin)
+			return nil, fmt.Errorf("grpcdump: unknown message origin")
 		}
 
 		// E.,g.
@@ -219,22 +227,30 @@ func WriteMessages(isClientStream, isServerStream bool, msgs ...Message) ([]txta
 
 		files[i] = txtar.File{
 			Name: header,
-			Data: b,
+			Data: appendNewLine(b),
 		}
 	}
 
 	return files, nil
 }
 
-func WriteStatus(status *Status) ([]byte, error) {
+func writeStatus(status *Status) (txtar.File, error) {
 	if status == nil {
-		return nil, nil
+		return txtar.File{}, nil
 	}
 
-	return json.MarshalIndent(status, "", " ")
+	b, err := json.MarshalIndent(status, "", " ")
+	if err != nil {
+		return txtar.File{}, err
+	}
+
+	return txtar.File{
+		Name: statusFile,
+		Data: appendNewLine(b),
+	}, nil
 }
 
-func ReadMetadata(b []byte) (metadata.MD, error) {
+func readMetadata(b []byte) (metadata.MD, error) {
 	data := string(bytes.TrimSpace(b))
 	if len(data) == 0 {
 		return nil, nil
@@ -245,8 +261,7 @@ func ReadMetadata(b []byte) (metadata.MD, error) {
 	for _, kv := range kvs {
 		k, v, ok := strings.Cut(kv, ": ")
 		if !ok {
-			fmt.Println("kv", kv)
-			return nil, InvalidMetadataError(kv)
+			return nil, fmt.Errorf("%w: %s", ErrInvalidMetadata, kv)
 		}
 
 		if isBinHeader(k) {

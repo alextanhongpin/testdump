@@ -7,13 +7,20 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+// CompareOption is a struct that holds comparison options for different parts of a gRPC message.
+// It includes options for comparing the Message, Metadata, Trailer, and Header.
 type CompareOption struct {
-	Message  []cmp.Option
-	Metadata []cmp.Option
-	Trailer  []cmp.Option
-	Header   []cmp.Option
+	Message  []cmp.Option // Options for comparing the message part of a gRPC message.
+	Metadata []cmp.Option // Options for comparing the metadata part of a gRPC message.
+	Trailer  []cmp.Option // Options for comparing the trailer part of a gRPC message.
+	Header   []cmp.Option // Options for comparing the header part of a gRPC message.
 }
 
+// Compare is a method on the GRPC struct.
+// It compares the current GRPC object (snapshot) with another GRPC object (received) using the provided CompareOption and comparer function.
+// The comparer function should take two any objects and a slice of cmp.Option objects, and return an error.
+// If the comparison is successful, the method should return nil.
+// If the comparison fails, the method should return an error.
 func (snapshot *GRPC) Compare(received *GRPC, opt CompareOption, comparer func(a, b any, opts ...cmp.Option) error) error {
 	x := snapshot
 	y := received

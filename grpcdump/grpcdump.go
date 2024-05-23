@@ -3,6 +3,7 @@ package grpcdump
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -21,6 +22,17 @@ import (
 	"github.com/alextanhongpin/testdump/pkg/diff"
 )
 
+var ErrMetadataNotFound = errors.New("grpcdump: metadata not found")
+
+const OriginServer = "server"
+const OriginClient = "client"
+
+const grpcdumpTestID = "x-grpcdump-testid"
+
+// NOTE: hackish implementation to extract the dump from the grpc server.
+var testIds = make(map[string]*GRPC)
+var mu sync.Mutex
+
 var d *dumper
 
 func init() {
@@ -31,11 +43,45 @@ type dumper struct {
 	opts []Option
 }
 
+func New(opts ...Option) *dumper {
+	return &dumper{
+		opts: opts,
+	}
+}
+
+// Record is a method on the dumper struct.
+// It takes a testing.T object, a context, and a slice of Option objects, and returns a new context.
+// The method configures the dumper according to the provided options, then starts recording gRPC calls in the provided context.
+// The returned context should be used in subsequent gRPC calls that should be recorded.
+func (d *dumper) Record(t *testing.T, ctx context.Context, opts ...Option) context.Context {
+	id := uuid.New().String()
+
+	t.Cleanup(func() {
+		mu.Lock()
+		g2c := testIds[id]
+		delete(testIds, id)
+		mu.Unlock()
+
+		if err := d.dump(t, g2c, opts...); err != nil {
+			t.Error(err)
+		}
+	})
+
+	return metadata.AppendToOutgoingContext(ctx, grpcdumpTestID, id)
+}
+
 func (d *dumper) dump(t *testing.T, received *GRPC, opts ...Option) error {
 	opt := newOption(append(d.opts, opts...)...)
+
+	for _, transform := range opt.transformers {
+		if err := transform(received); err != nil {
+			return err
+		}
+	}
+
 	file := filepath.Join("testdata", fmt.Sprintf("%s.grpc", t.Name()))
 
-	receivedBytes, err := Write(received, opt.transformers...)
+	receivedBytes, err := Write(received)
 	if err != nil {
 		return err
 	}
@@ -70,39 +116,16 @@ func (d *dumper) dump(t *testing.T, received *GRPC, opts ...Option) error {
 	return snapshot.Compare(received, opt.cmpOpt, comparer)
 }
 
-const OriginServer = "server"
-const OriginClient = "client"
-
-const grpcdumpTestID = "x-grpcdump-testid"
-
-// NOTE: hackish implementation to extract the dump from the grpc server.
-var testIds = make(map[string]*GRPC)
-var mu sync.Mutex
-
-// NewRecorder generates a new unique id for the request, and propagates it
-// from the client request to the server.
-// The request/response will then be dumped from the server and set to the
-// global map with this id.
-// The client can then retrieve the dump using the same id.
-// The id is automatically cleaned up after the test is done.
+// NewRecorder is a function that creates a new recorder for gRPC calls.
+// It takes a testing.T object, a context, and a slice of Option objects, and returns a new context.
+// The function delegates the recording task to the Record method of the dumper object.
+// The returned context should be used in subsequent gRPC calls that should be recorded.
 func NewRecorder(t *testing.T, ctx context.Context, opts ...Option) context.Context {
-	// Generate a new unique id per test.
-	id := uuid.New().String()
-
-	t.Cleanup(func() {
-		mu.Lock()
-		g2c := testIds[id]
-		delete(testIds, id)
-		mu.Unlock()
-
-		if err := d.dump(t, g2c, opts...); err != nil {
-			t.Error(err)
-		}
-	})
-
-	return metadata.AppendToOutgoingContext(ctx, grpcdumpTestID, id)
+	return d.Record(t, ctx, opts...)
 }
 
+// Message is a struct that represents a gRPC message.
+// It contains all the necessary fields for a complete gRPC message.
 type Message struct {
 	Origin  string `json:"origin"` // server or client
 	Name    string `json:"name"`   // message type (protobuf name)
@@ -154,18 +177,31 @@ func (s *serverStreamInterceptor) RecvMsg(m interface{}) error {
 	return err
 }
 
+// StreamInterceptor is a function that returns a grpc.ServerOption.
+// This ServerOption, when applied, configures the server to use the StreamServerInterceptor function as the stream interceptor.
+// The stream interceptor is a function that intercepts incoming streaming RPCs on the server.
 func StreamInterceptor() grpc.ServerOption {
 	return grpc.StreamInterceptor(StreamServerInterceptor)
 }
 
+// UnaryInterceptor is a function that returns a grpc.ServerOption.
+// This ServerOption, when applied, configures the server to use the UnaryServerInterceptor function as the unary interceptor.
+// The unary interceptor is a function that intercepts incoming unary RPCs on the server.
 func UnaryInterceptor() grpc.ServerOption {
 	return grpc.UnaryInterceptor(UnaryServerInterceptor)
 }
 
+// WithUnaryInterceptor is a function that returns a grpc.DialOption.
+// This DialOption, when applied, configures the client to use the UnaryClientInterceptor function as the unary interceptor.
+// The unary interceptor is a function that intercepts outgoing unary RPCs on the client.
 func WithUnaryInterceptor() grpc.DialOption {
 	return grpc.WithUnaryInterceptor(UnaryClientInterceptor)
 }
 
+// StreamServerInterceptor is a function that intercepts incoming streaming RPCs on the server.
+// It takes a server, a grpc.ServerStream, a grpc.StreamServerInfo, and a grpc.StreamHandler, and returns an error.
+// If the interception is successful, it should return nil.
+// If the interception fails, it should return an error.
 func StreamServerInterceptor(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 	ctx := stream.Context()
 	md, ok := metadata.FromIncomingContext(ctx)
@@ -192,7 +228,7 @@ func StreamServerInterceptor(srv any, stream grpc.ServerStream, info *grpc.Strea
 		Messages:       w.messages,
 		Trailer:        w.trailer,
 		Header:         w.header,
-		Status:         NewStatus(err),
+		Status:         newStatus(err),
 		IsServerStream: info.IsServerStream,
 		IsClientStream: info.IsClientStream,
 	}
@@ -201,6 +237,10 @@ func StreamServerInterceptor(srv any, stream grpc.ServerStream, info *grpc.Strea
 	return err
 }
 
+// UnaryServerInterceptor is a function that intercepts incoming unary RPCs on the server.
+// It takes a context, a request, a grpc.UnaryServerInfo, and a grpc.UnaryHandler, and returns a response and an error.
+// If the interception is successful, it should return the response and nil.
+// If the interception fails, it should return nil and the error.
 func UnaryServerInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
@@ -226,17 +266,21 @@ func UnaryServerInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 		FullMethod: info.FullMethod,
 		Metadata:   md,
 		Messages:   messages,
-		Status:     NewStatus(err),
+		Status:     newStatus(err),
 	}
 	mu.Unlock()
 
 	return res, err
 }
 
-func UnaryClientInterceptor(ctx context.Context, method string, req, res interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+// UnaryClientInterceptor is a function that intercepts outgoing unary RPCs on the client.
+// It takes a context, a method string, a request, a response, a grpc.ClientConn, a grpc.UnaryInvoker, and a slice of grpc.CallOption, and returns an error.
+// If the interception is successful, it should return nil.
+// If the interception fails, it should return the error.
+func UnaryClientInterceptor(ctx context.Context, method string, req, res any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 	md, ok := metadata.FromOutgoingContext(ctx)
 	if !ok {
-		return ErrMissingGRPCTestID
+		return ErrMetadataNotFound
 	}
 
 	testID := md.Get(grpcdumpTestID)[0]

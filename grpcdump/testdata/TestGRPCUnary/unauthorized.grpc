@@ -14,14 +14,9 @@ user-agent: grpc-go/1.62.1
  "name": "John Doe"
 }
 
--- header --
-
-
 -- status --
 {
  "code": "Unauthenticated",
  "number": 16,
  "message": "token expired"
 }
-
--- trailer --

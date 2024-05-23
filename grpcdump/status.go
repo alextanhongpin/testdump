@@ -12,9 +12,9 @@ type Status struct {
 	Message string     `json:"message"` // Message is the error message associated with the status code.
 }
 
-// NewStatus is a function that takes an error and returns a new Status object.
+// newStatus is a function that takes an error and returns a new Status object.
 // If the error can't be converted to a gRPC status, it returns nil.
-func NewStatus(err error) *Status {
+func newStatus(err error) *Status {
 	sts, ok := status.FromError(err)
 	if !ok {
 		return nil // Return nil if error is not a gRPC status error.
