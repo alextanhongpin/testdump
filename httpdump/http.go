@@ -12,36 +12,46 @@ import (
 	"github.com/alextanhongpin/testdump/pkg/diff"
 )
 
+// d is a global variable that holds a pointer to a dumper instance.
 var d *dumper
 
+// init is a special function in Go that is called when the package is initialized.
 func init() {
+	// We initialize d with a new dumper instance.
 	d = new(dumper)
 }
 
+// Handler is a function that takes a testing object, an HTTP handler, and a variadic list of options.
+// It returns an HTTP handler that is wrapped with the dumper's Handler method.
 func Handler(t *testing.T, h http.Handler, opts ...Option) http.Handler {
 	return d.Handler(t, h, opts...)
 }
 
+// HandlerFunc is similar to Handler, but it takes an HTTP handler function instead of an HTTP handler.
 func HandlerFunc(t *testing.T, h http.HandlerFunc, opts ...Option) http.Handler {
 	return d.HandlerFunc(t, h, opts...)
 }
 
+// Dump is a function that takes a testing object, an HTTP response writer, an HTTP request, and a variadic list of options.
+// It calls the dumper's Dump method with these arguments.
 func Dump(t *testing.T, w *http.Response, r *http.Request, opts ...Option) {
 	d.Dump(t, w, r, opts...)
 }
 
+// dumper is a struct that holds a slice of options.
 type dumper struct {
 	opts []Option
 }
 
-// New returns a dumper with initial options, to be reused for all instance of
-// the handler.
+// New is a function that takes a variadic list of options and returns a new dumper instance with these options.
 func New(opts ...Option) *dumper {
 	return &dumper{
 		opts: opts,
 	}
 }
 
+// Handler is a method on the dumper struct that takes a testing object, an HTTP handler, and a variadic list of options.
+// It returns a new handler instance with these values.
 func (d *dumper) Handler(t *testing.T, h http.Handler, opts ...Option) http.Handler {
 	return &handler{
 		t:    t,
@@ -50,6 +60,7 @@ func (d *dumper) Handler(t *testing.T, h http.Handler, opts ...Option) http.Hand
 	}
 }
 
+// HandlerFunc is similar to Handler, but it takes an HTTP handler function instead of an HTTP handler.
 func (d *dumper) HandlerFunc(t *testing.T, h http.HandlerFunc, opts ...Option) http.Handler {
 	return &handler{
 		t:    t,
@@ -58,6 +69,8 @@ func (d *dumper) HandlerFunc(t *testing.T, h http.HandlerFunc, opts ...Option) h
 	}
 }
 
+// Dump is a method on the dumper struct that takes a testing object, an HTTP response writer, an HTTP request, and a variadic list of options.
+// It appends the options to the dumper's options and then calls the dump function with the testing object, a new HTTP instance, and the options.
 func (d *dumper) Dump(t *testing.T, w *http.Response, r *http.Request, opts ...Option) {
 	t.Helper()
 
@@ -67,12 +80,16 @@ func (d *dumper) Dump(t *testing.T, w *http.Response, r *http.Request, opts ...O
 	}
 }
 
+// handler is a struct that holds a testing object, an HTTP handler, and a slice of options.
 type handler struct {
 	t    *testing.T
 	h    http.Handler
 	opts []Option
 }
 
+// ServeHTTP is a method on the handler struct that takes an HTTP response writer and an HTTP request.
+// It clones the request, calls the handler's ServeHTTP method with the response writer and the cloned request,
+// and then calls the dump function with the testing object, a new HTTP instance, and the options.
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	t := h.t
 	t.Helper()
@@ -99,7 +116,9 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// dump executes the snapshot process.
+// dump is a function that takes a testing object, an HTTP instance, and a variadic list of options.
+// It clones the HTTP instance, applies the transformers to the cloned instance, writes the cloned instance to a file,
+// reads the snapshot data from the file, and then compares the snapshot data with the cloned instance.
 func dump(t *testing.T, h2p *HTTP, opts ...Option) error {
 	opt := newOption(opts...)
 
