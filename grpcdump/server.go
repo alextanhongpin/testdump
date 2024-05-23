@@ -18,11 +18,13 @@ const addr = "bufnet"
 type Server struct {
 	listener *bufconn.Listener
 	BufSize  int
+	Server   *grpc.Server
 }
 
-func NewServer() *Server {
+func NewServer(opts ...grpc.ServerOption) *Server {
 	return &Server{
 		BufSize: bufSize,
+		Server:  grpc.NewServer(opts...),
 	}
 }
 
@@ -36,11 +38,9 @@ func (s *Server) DialContext(ctx context.Context, opts ...grpc.DialOption) (*grp
 	return conn, nil
 }
 
-func (s *Server) ListenAndServe(fn func(*grpc.Server), opts ...grpc.ServerOption) func() {
+func (s *Server) ListenAndServe() func() {
+	srv := s.Server
 	s.listener = bufconn.Listen(s.BufSize)
-
-	srv := grpc.NewServer(opts...)
-	fn(srv)
 
 	done := make(chan bool)
 

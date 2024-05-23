@@ -33,9 +33,7 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	s = grpcdump.NewServer()
-
-	opts := []grpc.ServerOption{
+	s = grpcdump.NewServer(
 		// Setup grpcdump on the server side.
 		// Also set on the client side, but only the `WithUnaryInterceptor`.
 		grpcdump.StreamInterceptor(),
@@ -44,15 +42,11 @@ func TestMain(m *testing.M) {
 			ensureValidToken,
 		),
 		grpc.Creds(credentials.NewServerTLSFromCert(&cert)),
-	}
-
-	stop := s.ListenAndServe(func(srv *grpc.Server) {
-		// Register your server here.
-		pb.RegisterGreeterServiceServer(srv, &server{})
-	},
-		opts...,
 	)
 
+	pb.RegisterGreeterServiceServer(s.Server, &server{})
+
+	stop := s.ListenAndServe()
 	code := m.Run()
 	stop()
 	os.Exit(code)
@@ -285,24 +279,24 @@ func TestMaskOptions(t *testing.T) {
 }
 
 func TestIgnoreOptions(t *testing.T) {
-	gs := grpcdump.NewServer()
 	ctx := context.Background()
-	opts := []grpc.ServerOption{
+
+	gs := grpcdump.NewServer(
 		// Setup grpcdump on the server side.
 		// Also set on the client side, but only the `WithUnaryInterceptor`.
 		grpcdump.StreamInterceptor(),
+		grpcdump.UnaryInterceptor(),
+		/* If you need to chain multiple unary server interceptor, do this:
 		grpc.ChainUnaryInterceptor(
 			grpcdump.UnaryServerInterceptor,
+			ensureValidToken,
 		),
-	}
-
-	stop := gs.ListenAndServe(func(srv *grpc.Server) {
-		// Register your server here.
-		pb.RegisterGreeterServiceServer(srv, &server{dynamic: true}) // Set dynamic payload
-	},
-		opts...,
+		*/
 	)
-	t.Cleanup(stop)
+
+	pb.RegisterGreeterServiceServer(gs.Server, &server{dynamic: true}) // Set dynamic payload
+	stop := gs.ListenAndServe()
+	defer stop()
 
 	conn, err := gs.DialContext(ctx,
 		// Setup grpcdump on the client side.
