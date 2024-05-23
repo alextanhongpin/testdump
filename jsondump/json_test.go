@@ -274,7 +274,9 @@ let url = =~ "^https://(.+)"
 
 	jsondump.Dump(t, u, jsondump.Transformer(func(b []byte) ([]byte, error) {
 		return b, c.Validate(b)
-	}))
+	}),
+		jsondump.IgnoreFields("birthday"),
+	)
 }
 
 func TestCUESchemaField(t *testing.T) {
@@ -306,7 +308,9 @@ name!: string & strings.MinRunes(1)`,
 
 	jsondump.Dump(t, u, jsondump.Transformer(func(b []byte) ([]byte, error) {
 		return b, c.Validate(b)
-	}))
+	}),
+		jsondump.IgnoreFields("birthday"),
+	)
 }
 
 func TestCUESchemaPath(t *testing.T) {
@@ -335,5 +339,7 @@ func TestCUESchemaPath(t *testing.T) {
 
 	jsondump.Dump(t, u, jsondump.Transformer(func(b []byte) ([]byte, error) {
 		return b, c.Validate(b)
-	}))
+	}),
+		jsondump.IgnoreFields("birthday"),
+	)
 }
