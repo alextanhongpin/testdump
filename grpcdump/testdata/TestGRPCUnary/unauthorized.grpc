@@ -1,0 +1,27 @@
+-- line --
+GRPC bufconn/helloworld.v1.GreeterService/SayHello
+
+-- metadata --
+:authority: x.test.example.com
+authorization: Bearer abc
+content-type: application/grpc
+md-val: md-val
+md-val-bin: bWQtdmFsLWJpbg
+user-agent: grpc-go/1.62.1
+
+-- client/helloworld.v1.SayHelloRequest --
+{
+ "name": "John Doe"
+}
+
+-- header --
+
+
+-- status --
+{
+ "code": "Unauthenticated",
+ "number": 16,
+ "message": "token expired"
+}
+
+-- trailer --

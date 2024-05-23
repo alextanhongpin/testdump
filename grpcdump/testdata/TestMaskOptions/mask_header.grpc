@@ -1,0 +1,34 @@
+-- line --
+GRPC bufconn/helloworld.v1.GreeterService/SayHello
+
+-- metadata --
+:authority: x.test.example.com
+authorization: Bearer xyz
+content-type: application/grpc
+user-agent: grpc-go/1.62.1
+
+-- client/helloworld.v1.SayHelloRequest --
+{
+ "name": "John Doe"
+}
+
+-- server/helloworld.v1.SayHelloResponse --
+{
+ "message": "Hello John Doe"
+}
+
+-- header --
+content-type: application/grpc
+header-key: [MASKED]
+header-key-bin: aGVhZGVyLXZhbC1iaW4
+
+-- status --
+{
+ "code": "OK",
+ "number": 0,
+ "message": ""
+}
+
+-- trailer --
+trailer-key: trailer-val
+trailer-key-bin: dHJhaWxlci12YWwtYmlu
