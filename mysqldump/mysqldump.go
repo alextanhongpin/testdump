@@ -12,14 +12,14 @@ import (
 	"github.com/alextanhongpin/testdump/mysqldump/internal"
 )
 
-var d *dumper
+var d *Dumper
 
 func init() {
-	d = new(dumper)
+	d = new(Dumper)
 }
 
-func New(opts ...Option) *dumper {
-	return &dumper{
+func New(opts ...Option) *Dumper {
+	return &Dumper{
 		opts: opts,
 	}
 }
@@ -28,11 +28,11 @@ func Dump(t *testing.T, received *SQL, opts ...Option) {
 	d.Dump(t, received, opts...)
 }
 
-type dumper struct {
+type Dumper struct {
 	opts []Option
 }
 
-func (d *dumper) Dump(t *testing.T, received *SQL, opts ...Option) {
+func (d *Dumper) Dump(t *testing.T, received *SQL, opts ...Option) {
 	t.Helper()
 
 	opts = append(d.opts, opts...)
