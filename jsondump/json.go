@@ -12,27 +12,27 @@ import (
 	"github.com/alextanhongpin/testdump/pkg/diff"
 )
 
-var d *dumper
+var d *Dumper
 
 func init() {
-	d = new(dumper)
+	d = new(Dumper)
 }
 
-// New creates a new dumper with the given options.
-// The dumper can be used to dump values to a file.
-func New(opts ...Option) *dumper {
-	return &dumper{opts: opts}
+// New creates a new Dumper with the given options.
+// The Dumper can be used to dump values to a file.
+func New(opts ...Option) *Dumper {
+	return &Dumper{opts: opts}
 }
 
 func Dump(t *testing.T, v any, opts ...Option) {
 	d.Dump(t, v, opts...)
 }
 
-type dumper struct {
+type Dumper struct {
 	opts []Option
 }
 
-func (d *dumper) Dump(t *testing.T, v any, opts ...Option) {
+func (d *Dumper) Dump(t *testing.T, v any, opts ...Option) {
 	t.Helper()
 
 	opts = append(d.opts, opts...)

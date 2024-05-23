@@ -127,22 +127,22 @@ func MaskPaths(mask string, paths []string) Option {
 	return Transformer(internal.MaskPaths(mask, paths))
 }
 
-// Define a struct for a masker
-type masker struct {
+// Define a struct for a Masker
+type Masker struct {
 	mask string
 }
 
-// NewMask is a constructor for the masker struct
-func NewMask(mask string) *masker {
-	return &masker{mask: mask}
+// NewMask is a constructor for the Masker struct
+func NewMask(mask string) *Masker {
+	return &Masker{mask: mask}
 }
 
-// MaskFields is a method on masker that masks certain fields
-func (m *masker) MaskFields(fields ...string) Option {
+// MaskFields is a method on Masker that masks certain fields
+func (m *Masker) MaskFields(fields ...string) Option {
 	return MaskFields(m.mask, fields)
 }
 
-// MaskPaths is a method on masker that masks certain paths
-func (m *masker) MaskPaths(paths ...string) Option {
+// MaskPaths is a method on Masker that masks certain paths
+func (m *Masker) MaskPaths(paths ...string) Option {
 	return MaskPaths(m.mask, paths)
 }
