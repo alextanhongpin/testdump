@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alextanhongpin/dump/jsondump"
-	"github.com/alextanhongpin/dump/pkg/cuetest"
+	"github.com/alextanhongpin/testdump/jsondump"
+	"github.com/alextanhongpin/testdump/pkg/cuetest"
 )
 
 func TestDump(t *testing.T) {

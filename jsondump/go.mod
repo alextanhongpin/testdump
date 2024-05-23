@@ -1,4 +1,4 @@
-module github.com/alextanhongpin/dump/jsondump
+module github.com/alextanhongpin/testdump/jsondump
 
 go 1.21.10
 

@@ -1,7 +1,7 @@
 package jsondump
 
 import (
-	"github.com/alextanhongpin/dump/jsondump/internal"
+	"github.com/alextanhongpin/testdump/jsondump/internal"
 	"github.com/google/go-cmp/cmp"
 )
 

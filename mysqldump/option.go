@@ -1,7 +1,7 @@
 package mysqldump
 
 import (
-	"github.com/alextanhongpin/dump/mysqldump/internal"
+	"github.com/alextanhongpin/testdump/mysqldump/internal"
 )
 
 type option struct {

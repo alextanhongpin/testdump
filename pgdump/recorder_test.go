@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/alextanhongpin/dump/pgdump"
+	"github.com/alextanhongpin/testdump/pgdump"
 )
 
 func TestRecorder(t *testing.T) {

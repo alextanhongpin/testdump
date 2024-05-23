@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/alextanhongpin/dump/pgdump/internal"
-	"github.com/alextanhongpin/dump/pkg/diff"
+	"github.com/alextanhongpin/testdump/pgdump/internal"
+	"github.com/alextanhongpin/testdump/pkg/diff"
 )
 
 var d *dumper

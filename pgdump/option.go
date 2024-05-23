@@ -1,7 +1,7 @@
 package pgdump
 
 import (
-	"github.com/alextanhongpin/dump/pgdump/internal"
+	"github.com/alextanhongpin/testdump/pgdump/internal"
 )
 
 type option struct {

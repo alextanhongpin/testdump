@@ -1,4 +1,4 @@
-module github.com/alextanhongpin/dump/mysqldump
+module github.com/alextanhongpin/testdump/mysqldump
 
 go 1.22.3
 

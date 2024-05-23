@@ -5,7 +5,7 @@
 To use this package, you can import it like so:
 
 ```go
-import "github.com/alextanhongpin/dump/http"
+import "github.com/alextanhongpin/testdump/http"
 ```
 
 ## Overview
@@ -130,5 +130,5 @@ When the content of the generated dump doesn't match the snapshot, you can see t
         
 FAIL
 exit status 1
-FAIL    github.com/alextanhongpin/dump/http     0.449s
+FAIL    github.com/alextanhongpin/testdump/http     0.449s
 ```

@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/alextanhongpin/dump/pkg/reviver"
+	"github.com/alextanhongpin/testdump/pkg/reviver"
 )
 
 type Transformer func(w *http.Response, r *http.Request) error

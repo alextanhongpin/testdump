@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/alextanhongpin/dump/pkg/diff"
+	"github.com/alextanhongpin/testdump/pkg/diff"
 
-	"github.com/alextanhongpin/dump/mysqldump/internal"
+	"github.com/alextanhongpin/testdump/mysqldump/internal"
 )
 
 var d *dumper

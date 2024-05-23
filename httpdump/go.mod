@@ -1,4 +1,4 @@
-module github.com/alextanhongpin/dump/httpdump
+module github.com/alextanhongpin/testdump/httpdump
 
 go 1.21.10
 

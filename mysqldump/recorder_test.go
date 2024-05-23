@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/alextanhongpin/dump/mysqldump"
+	"github.com/alextanhongpin/testdump/mysqldump"
 )
 
 func TestRecorder(t *testing.T) {

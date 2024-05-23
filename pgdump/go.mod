@@ -1,4 +1,4 @@
-module github.com/alextanhongpin/dump/pgdump
+module github.com/alextanhongpin/testdump/pgdump
 
 go 1.22.2
 

@@ -1,4 +1,4 @@
-module github.com/alextanhongpin/dump/pkg/reviver
+module github.com/alextanhongpin/testdump/pkg/reviver
 
 go 1.21.10
 

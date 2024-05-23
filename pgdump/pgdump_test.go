@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alextanhongpin/dump/pgdump"
-	"github.com/alextanhongpin/dump/pkg/sqlformat"
+	"github.com/alextanhongpin/testdump/pgdump"
+	"github.com/alextanhongpin/testdump/pkg/sqlformat"
 )
 
 func TestDump(t *testing.T) {

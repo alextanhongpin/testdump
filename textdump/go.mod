@@ -1,3 +1,3 @@
-module github.com/alextanhongpin/dump/textdump
+module github.com/alextanhongpin/testdump/textdump
 
 go 1.21.10

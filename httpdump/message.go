@@ -7,7 +7,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/alextanhongpin/dump/httpdump/internal"
+	"github.com/alextanhongpin/testdump/httpdump/internal"
 	"github.com/google/go-cmp/cmp"
 )
 

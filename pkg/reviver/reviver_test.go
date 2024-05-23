@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/alextanhongpin/dump/pkg/reviver"
+	"github.com/alextanhongpin/testdump/pkg/reviver"
 	"github.com/google/go-cmp/cmp"
 )
 

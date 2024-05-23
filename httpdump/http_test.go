@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/alextanhongpin/dump/httpdump"
+	"github.com/alextanhongpin/testdump/httpdump"
 )
 
 func TestDump(t *testing.T) {

@@ -1,4 +1,4 @@
-module github.com/alextanhongpin/dump/pkg/diff
+module github.com/alextanhongpin/testdump/pkg/diff
 
 go 1.21.10
 

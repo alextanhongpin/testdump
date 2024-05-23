@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"net/http"
 
-	"github.com/alextanhongpin/dump/httpdump/internal"
+	"github.com/alextanhongpin/testdump/httpdump/internal"
 	"golang.org/x/tools/txtar"
 )
 

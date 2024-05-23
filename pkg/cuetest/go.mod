@@ -1,4 +1,4 @@
-module github.com/alextanhongpin/dump/pkg/cuetest
+module github.com/alextanhongpin/testdump/pkg/cuetest
 
 go 1.21.10
 

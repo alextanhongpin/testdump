@@ -1,7 +1,7 @@
 package httpdump
 
 import (
-	"github.com/alextanhongpin/dump/httpdump/internal"
+	"github.com/alextanhongpin/testdump/httpdump/internal"
 )
 
 type option struct {

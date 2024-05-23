@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/alextanhongpin/dump/httpdump/internal"
+	"github.com/alextanhongpin/testdump/httpdump/internal"
 )
 
 type RoundTripper struct {

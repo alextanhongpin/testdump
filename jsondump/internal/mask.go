@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"slices"
 
-	"github.com/alextanhongpin/dump/pkg/reviver"
+	"github.com/alextanhongpin/testdump/pkg/reviver"
 )
 
 const ignoreVal = "[IGNORED]"
