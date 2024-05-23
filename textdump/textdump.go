@@ -10,13 +10,17 @@ import (
 	"github.com/alextanhongpin/testdump/textdump/internal"
 )
 
-var d *dumper
+var d *Dumper
 
 func init() {
-	d = new(dumper)
+	d = new(Dumper)
 }
 
-type dumper struct {
+func New(opts ...Option) *Dumper {
+	return &Dumper{opt: opts}
+}
+
+type Dumper struct {
 	opt []Option
 }
 
@@ -24,7 +28,7 @@ func Dump(t *testing.T, received []byte, opts ...Option) {
 	d.Dump(t, received, opts...)
 }
 
-func (d *dumper) Dump(t *testing.T, received []byte, opts ...Option) {
+func (d *Dumper) Dump(t *testing.T, received []byte, opts ...Option) {
 	t.Helper()
 
 	if err := dump(t, received, opts...); err != nil {
