@@ -33,27 +33,27 @@ const grpcdumpTestID = "x-grpcdump-testid"
 var testIds = make(map[string]*GRPC)
 var mu sync.Mutex
 
-var d *dumper
+var d *Dumper
 
 func init() {
-	d = new(dumper)
+	d = new(Dumper)
 }
 
-type dumper struct {
+type Dumper struct {
 	opts []Option
 }
 
-func New(opts ...Option) *dumper {
-	return &dumper{
+func New(opts ...Option) *Dumper {
+	return &Dumper{
 		opts: opts,
 	}
 }
 
-// Record is a method on the dumper struct.
+// Record is a method on the Dumper struct.
 // It takes a testing.T object, a context, and a slice of Option objects, and returns a new context.
-// The method configures the dumper according to the provided options, then starts recording gRPC calls in the provided context.
+// The method configures the Dumper according to the provided options, then starts recording gRPC calls in the provided context.
 // The returned context should be used in subsequent gRPC calls that should be recorded.
-func (d *dumper) Record(t *testing.T, ctx context.Context, opts ...Option) context.Context {
+func (d *Dumper) Record(t *testing.T, ctx context.Context, opts ...Option) context.Context {
 	id := uuid.New().String()
 
 	t.Cleanup(func() {
@@ -70,7 +70,7 @@ func (d *dumper) Record(t *testing.T, ctx context.Context, opts ...Option) conte
 	return metadata.AppendToOutgoingContext(ctx, grpcdumpTestID, id)
 }
 
-func (d *dumper) dump(t *testing.T, received *GRPC, opts ...Option) error {
+func (d *Dumper) dump(t *testing.T, received *GRPC, opts ...Option) error {
 	opt := newOption(append(d.opts, opts...)...)
 
 	for _, transform := range opt.transformers {
@@ -118,7 +118,7 @@ func (d *dumper) dump(t *testing.T, received *GRPC, opts ...Option) error {
 
 // NewRecorder is a function that creates a new recorder for gRPC calls.
 // It takes a testing.T object, a context, and a slice of Option objects, and returns a new context.
-// The function delegates the recording task to the Record method of the dumper object.
+// The function delegates the recording task to the Record method of the Dumper object.
 // The returned context should be used in subsequent gRPC calls that should be recorded.
 func NewRecorder(t *testing.T, ctx context.Context, opts ...Option) context.Context {
 	return d.Record(t, ctx, opts...)
