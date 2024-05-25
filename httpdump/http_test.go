@@ -350,6 +350,25 @@ func TestHTML(t *testing.T) {
 	})
 }
 
+func TestHTMLBody(t *testing.T) {
+	h := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		fmt.Fprint(w, `<div>
+	<form id='login-form'>
+			<input type='email' name='email'/>
+			<input type='password' name='password'/>
+			<button>Submit</button>
+	</form>
+</div>`)
+	}
+
+	wr := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	r.Header.Set("Content-Type", "application/json")
+	hd := httpdump.HandlerFunc(t, h, httpdump.Body(true))
+	hd.ServeHTTP(wr, r)
+}
+
 func TestMask(t *testing.T) {
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		type response struct {

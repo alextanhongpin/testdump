@@ -13,6 +13,7 @@ type option struct {
 	// content-length.
 	indentJSON bool
 	colors     bool
+	body       bool
 }
 
 // newOption is a function that takes a variadic list of options and returns a new option instance with these options.
@@ -50,6 +51,13 @@ func CmpOpt(opt CompareOption) Option {
 func Env(env string) Option {
 	return func(o *option) {
 		o.env = env
+	}
+}
+
+// Body is a function that takes a bool and returns an option that writes the body to the file if true.
+func Body(body bool) Option {
+	return func(o *option) {
+		o.body = body
 	}
 }
 

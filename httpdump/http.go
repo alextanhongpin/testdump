@@ -1,10 +1,14 @@
 package httpdump
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+	"mime"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"sort"
 	"strconv"
 	"testing"
 
@@ -137,6 +141,30 @@ func dump(t *testing.T, h2p *HTTP, opts ...Option) error {
 	src, err := Write(received, opt.indentJSON)
 	if err != nil {
 		return err
+	}
+
+	if opt.body {
+		typ, _, err := mime.ParseMediaType(h2p.Response.Header.Get("Content-Type"))
+		if err != nil {
+			return err
+		}
+		exts, err := mime.ExtensionsByType(typ)
+		if err != nil {
+			return err
+		}
+		sort.Strings(exts)
+		ext := exts[len(exts)-1] // Take the longest.
+		bodyFile := fmt.Sprintf("testdata/%s%s", t.Name(), ext)
+		b, err := io.ReadAll(h2p.Response.Body)
+		if err != nil {
+			return err
+		}
+
+		h2p.Response.Body = io.NopCloser(bytes.NewReader(b))
+		_, err = internal.WriteFile(bodyFile, b, true)
+		if err != nil {
+			return err
+		}
 	}
 
 	update, _ := strconv.ParseBool(os.Getenv(opt.env))
