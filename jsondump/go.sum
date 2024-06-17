@@ -1,2 +1,6 @@
+github.com/alextanhongpin/testdump/pkg/diff v0.0.0-20240617032328-5cdd37fc0156 h1:F4Vk9uRhSWbkQKrV78gioqjufW/acun1llGnJbz1ujo=
+github.com/alextanhongpin/testdump/pkg/diff v0.0.0-20240617032328-5cdd37fc0156/go.mod h1:G2g+ua+3rXatKhXe8pvP7QopFCVJ/y+0hGuqIEZ4Pio=
+github.com/alextanhongpin/testdump/pkg/reviver v0.0.0-20240617032328-5cdd37fc0156 h1:M+cGsyJBVGMkl6OE7w8C94OtZuQYUPvPABCzD3/rV80=
+github.com/alextanhongpin/testdump/pkg/reviver v0.0.0-20240617032328-5cdd37fc0156/go.mod h1:lAUgUptynW4bE3EIEFSpX4MZhJqxvy7AEW6eBQb71hY=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
