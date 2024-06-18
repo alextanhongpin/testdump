@@ -1,11 +1,13 @@
-# dump/http Package
+# httpdump
+
+[![Go Reference](https://pkg.go.dev/badge/github.com/alextanhongpin/testdump/httpdump.svg)](https://pkg.go.dev/github.com/alextanhongpin/testdump/httpdump)
 
 ## Installation
 
 To use this package, you can import it like so:
 
 ```go
-import "github.com/alextanhongpin/testdump/http"
+import "github.com/alextanhongpin/testdump/httpdump"
 ```
 
 ## Overview
@@ -25,7 +27,7 @@ h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
   w.Write([]byte("Hello, World!"))
 })
 
-hd := httpdump.NewHandler(t, h)
+hd := httpdump.Handler(t, h)
 ```
 
 ### Serving HTTP Requests
@@ -104,9 +106,10 @@ hd.ServeHTTP(wr, r)
 If the JSON request contains dynamic values such as uuid or datetime, you can skip those fields from comparison:
 
 ```go
-hd := httpdump.NewHandlerFunc(t, h)
-hd.CompareRequestOption.Body = []cmp.Option{httpdump.IgnoreMapEntries("createdAt")}
-hd.CompareResponseOption.Body = []cmp.Option{httpdump.IgnoreMapEntries("id")}
+hd := httpdump.HandlerFunc(t, h,
+  httpdump.IgnoreRequestFields("createdAt"),
+  httpdump.IgnoreResponseFields("id"),
+)
 hd.ServeHTTP(wr, r)
 ```
 
