@@ -1,0 +1,6 @@
+email:
+    email: '[REDACTED]'
+    type: email
+google:
+    email: '[REDACTED]'
+    type: google
