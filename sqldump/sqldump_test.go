@@ -5,21 +5,22 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/alextanhongpin/testdump/jsondump"
 	"github.com/alextanhongpin/testdump/sqldump"
+	"github.com/alextanhongpin/testdump/yamldump"
 )
 
 func TestDump(t *testing.T) {
 	db := newMockDB(t,
-		[]string{"id", "name", "email"},
+		[]string{"id", "name", "email", "created_at"},
 		[]string{
-			"1", "alpha", "alpha@mail.com",
-			"1", "beta", "beta@mail.com",
-			"1", "charlie", "charlie@mail.com",
-			"1", "dwayne", "dwayne@mail.com",
-			"1", "ellie", "ellie@mail.com",
+			"1", "alpha", "alpha@mail.com", time.Now().String(),
+			"1", "beta", "beta@mail.com", time.Now().String(),
+			"1", "charlie", "charlie@mail.com", time.Now().String(),
+			"1", "dwayne", "dwayne@mail.com", time.Now().String(),
+			"1", "ellie", "ellie@mail.com", time.Now().String(),
 		},
 	)
 
@@ -27,7 +28,7 @@ func TestDump(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	jsondump.Dump(t, res)
+	yamldump.Dump(t, res, yamldump.IgnoreFields("created_at"))
 }
 
 func newMockDB(t *testing.T, cols []string, vals []string) *sql.DB {
