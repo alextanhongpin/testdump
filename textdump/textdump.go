@@ -2,6 +2,7 @@ package textdump
 
 import (
 	"fmt"
+	"io"
 	"path/filepath"
 	"testing"
 
@@ -31,12 +32,18 @@ func Dump(t *testing.T, b []byte, opts ...Option) {
 func (d *Dumper) Dump(t *testing.T, b []byte, opts ...Option) {
 	t.Helper()
 
-	if err := dump(t, b, opts...); err != nil {
+	rwc, err := d.newReadWriteCloser(t, opts...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rwc.Close()
+
+	if err := Snapshot(rwc, b, opts...); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func dump(t *testing.T, b []byte, opts ...Option) (err error) {
+func (d *Dumper) newReadWriteCloser(t *testing.T, opts ...Option) (io.ReadWriteCloser, error) {
 	opt := newOptions().apply(opts...)
 
 	var path string
@@ -47,12 +54,13 @@ func dump(t *testing.T, b []byte, opts ...Option) (err error) {
 	}
 
 	f, err := file.New(path, opt.overwrite())
-	if err != nil {
-		return err
-	}
-	defer f.Close()
+	return f, err
+}
 
-	return snapshot.Snapshot(f, opt.encoder(), opt.comparer(), b)
+func Snapshot(rw io.ReadWriter, b []byte, opts ...Option) (err error) {
+	opt := newOptions().apply(opts...)
+
+	return snapshot.Snapshot(rw, opt.encoder(), opt.comparer(), b)
 }
 
 type encoder struct {
@@ -61,8 +69,8 @@ type encoder struct {
 
 func (e *encoder) Marshal(v any) (b []byte, err error) {
 	b = v.([]byte)
-	for _, transform := range e.marshalFns {
-		b, err = transform(b)
+	for _, fn := range e.marshalFns {
+		b, err = fn(b)
 		if err != nil {
 			return
 		}
