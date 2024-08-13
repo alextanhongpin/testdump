@@ -40,12 +40,12 @@ func (d *Dumper) Dump(t *testing.T, v any, opts ...Option) {
 	t.Helper()
 
 	opts = append(d.opts, opts...)
-	if err := Snapshot(t, v, opts...); err != nil {
+	if err := dump(t, v, opts...); err != nil {
 		t.Error(err)
 	}
 }
 
-func Snapshot(t *testing.T, v any, opts ...Option) error {
+func dump(t *testing.T, v any, opts ...Option) error {
 	t.Helper()
 
 	opt := newOptions().apply(opts...)
