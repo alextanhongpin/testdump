@@ -7,13 +7,14 @@ import (
 	"mime"
 	"net/http"
 	"net/http/httptest"
-	"os"
+	"path/filepath"
 	"sort"
-	"strconv"
 	"testing"
 
 	"github.com/alextanhongpin/testdump/httpdump/internal"
 	"github.com/alextanhongpin/testdump/pkg/diff"
+	"github.com/alextanhongpin/testdump/pkg/file"
+	"github.com/alextanhongpin/testdump/pkg/snapshot"
 )
 
 // d is a global variable that holds a pointer to a Dumper instance.
@@ -54,8 +55,9 @@ func New(opts ...Option) *Dumper {
 	}
 }
 
-// Handler is a method on the Dumper struct that takes a testing object, an HTTP handler, and a variadic list of options.
-// It returns a new handler instance with these values.
+// Handler is a method on the Dumper struct that takes a testing object, an
+// HTTP handler, and a variadic list of options. It returns a new handler
+// instance with these values.
 func (d *Dumper) Handler(t *testing.T, h http.Handler, opts ...Option) http.Handler {
 	return &handler{
 		t:    t,
@@ -64,7 +66,8 @@ func (d *Dumper) Handler(t *testing.T, h http.Handler, opts ...Option) http.Hand
 	}
 }
 
-// HandlerFunc is similar to Handler, but it takes an HTTP handler function instead of an HTTP handler.
+// HandlerFunc is similar to Handler, but it takes an HTTP handler function
+// instead of an HTTP handler.
 func (d *Dumper) HandlerFunc(t *testing.T, h http.HandlerFunc, opts ...Option) http.Handler {
 	return &handler{
 		t:    t,
@@ -123,28 +126,12 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // dump is a function that takes a testing object, an HTTP instance, and a variadic list of options.
 // It clones the HTTP instance, applies the transformers to the cloned instance, writes the cloned instance to a file,
 // reads the snapshot data from the file, and then compares the snapshot data with the cloned instance.
-func dump(t *testing.T, h2p *HTTP, opts ...Option) error {
-	opt := newOption(opts...)
-
-	received, err := h2p.Clone()
-	if err != nil {
-		return err
-	}
-
-	for _, transform := range opt.transformers {
-		if err := transform(received.Response, received.Request); err != nil {
-			return err
-		}
-	}
-
-	file := fmt.Sprintf("testdata/%s.http", t.Name())
-	src, err := Write(received, opt.indentJSON)
-	if err != nil {
-		return err
-	}
+func dump(t *testing.T, h *HTTP, opts ...Option) error {
+	opt := newOptions().apply(opts...)
 
 	if opt.body {
-		typ, _, err := mime.ParseMediaType(h2p.Response.Header.Get("Content-Type"))
+		// Read the body only, and write to a separate file.
+		typ, _, err := mime.ParseMediaType(h.Response.Header.Get("Content-Type"))
 		if err != nil {
 			return err
 		}
@@ -155,46 +142,75 @@ func dump(t *testing.T, h2p *HTTP, opts ...Option) error {
 		sort.Strings(exts)
 		ext := exts[len(exts)-1] // Take the longest.
 		bodyFile := fmt.Sprintf("testdata/%s%s", t.Name(), ext)
-		b, err := io.ReadAll(h2p.Response.Body)
+		if opt.file != "" {
+			bodyFile = fmt.Sprintf("testdata/%s/%s%s", t.Name(), opt.file, ext)
+		}
+		b, err := io.ReadAll(h.Response.Body)
 		if err != nil {
 			return err
 		}
 
-		h2p.Response.Body = io.NopCloser(bytes.NewReader(b))
+		h.Response.Body = io.NopCloser(bytes.NewReader(b))
 		_, err = internal.WriteFile(bodyFile, b, true)
 		if err != nil {
 			return err
 		}
 	}
 
-	update, _ := strconv.ParseBool(os.Getenv(opt.env))
+	var path string
+	if opt.file != "" {
+		path = filepath.Join("testdata", t.Name(), fmt.Sprintf("%s.http", opt.file))
+	} else {
+		path = filepath.Join("testdata", fmt.Sprintf("%s.http", t.Name()))
+	}
 
-	// Write the received data to the file.
-	written, err := internal.WriteFile(file, src, update)
+	f, err := file.New(path, opt.overwrite())
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
-	// First write, there's nothing to compare.
-	if written {
-		return nil
-	}
+	return snapshot.Snapshot(f, opt.encoder(), opt.comparer(), h)
+}
 
-	// Read the snapshot data from the file.
-	b, err := os.ReadFile(file)
+type encoder struct {
+	marshalFns []Transformer
+	indentJSON bool
+}
+
+func (e *encoder) Marshal(v any) ([]byte, error) {
+	h := v.(*HTTP)
+	hc, err := h.Clone()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	snapshot, err := Read(b)
-	if err != nil {
-		return err
+	for _, fn := range e.marshalFns {
+		if err := fn(hc.Response, hc.Request); err != nil {
+			return nil, err
+		}
 	}
+
+	return Write(hc, e.indentJSON)
+}
+
+func (e *encoder) Unmarshal(b []byte) (any, error) {
+	return Read(b)
+}
+
+type comparer struct {
+	colors bool
+	cmpOpt CompareOption
+}
+
+func (c *comparer) Compare(a, b any) error {
+	x := a.(*HTTP)
+	y := b.(*HTTP)
 
 	comparer := diff.Text
-	if opt.colors {
+	if c.colors {
 		comparer = diff.ANSI
 	}
 
-	return snapshot.Compare(received, opt.cmpOpt, comparer)
+	return x.Compare(y, c.cmpOpt, comparer)
 }
