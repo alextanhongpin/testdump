@@ -1,47 +1,70 @@
 package textdump
 
-type Option func(o *option)
+import (
+	"os"
+	"strconv"
+)
 
-type option struct {
-	transformers []Transformer
-	env          string
+type Option func(o *options)
+
+type options struct {
 	colors       bool
+	env          string
 	file         string
+	transformers []Transformer
+}
+
+func newOptions() *options {
+	return &options{
+		colors: true,
+		env:    "TESTDUMP",
+	}
+}
+
+func (o *options) apply(opts ...Option) *options {
+	for _, opt := range opts {
+		opt(o)
+	}
+	return o
+}
+
+func (o *options) overwrite() bool {
+	t, _ := strconv.ParseBool(os.Getenv(o.env))
+	return t
+}
+
+func (o *options) encoder() *encoder {
+	return &encoder{
+		marshalFns: o.transformers,
+	}
+}
+
+func (o *options) comparer() *comparer {
+	return &comparer{colors: o.colors}
 }
 
 type Transformer func(b []byte) ([]byte, error)
 
 func Transformers(t ...Transformer) Option {
-	return func(o *option) {
+	return func(o *options) {
 		o.transformers = append(o.transformers, t...)
 	}
 }
 
 func Colors(colors bool) Option {
-	return func(o *option) {
+	return func(o *options) {
 		o.colors = colors
 	}
 }
 
 func Env(env string) Option {
-	return func(o *option) {
+	return func(o *options) {
 		o.env = env
 	}
 }
 
 func File(file string) Option {
-	return func(o *option) {
+	return func(o *options) {
 		o.file = file
 	}
-}
-
-func newOption(opts ...Option) *option {
-	opt := new(option)
-	opt.colors = true
-
-	for _, o := range opts {
-		o(opt)
-	}
-
-	return opt
 }
