@@ -1,10 +1,15 @@
 package jsondump
 
 import (
+	gocmp "cmp"
+	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/alextanhongpin/testdump/jsondump/internal"
+	"github.com/alextanhongpin/testdump/pkg/file"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -53,6 +58,18 @@ func (o *options) comparer() *comparer {
 		cmpOpts: o.cmpOpts,
 		colors:  o.colors,
 	}
+}
+
+func (o *options) newReadWriteCloser(dir, name string) (io.ReadWriteCloser, error) {
+	path := filepath.Join("testdata", dir, fmt.Sprintf("%s.json", gocmp.Or(o.file, name)))
+
+	return file.New(path, o.overwrite())
+}
+
+func (o *options) newOutput(dir, name string) (io.ReadWriteCloser, error) {
+	path := filepath.Join("testdata", dir, fmt.Sprintf("%s.out", gocmp.Or(o.file, name)))
+
+	return file.New(path, true)
 }
 
 func newOptions() *options {

@@ -17,9 +17,7 @@ type CompareOption struct {
 	CmpOpts []cmp.Option
 }
 
-type comparer func(a, b any, opts ...cmp.Option) error
-
-func (snapshot *SQL) Compare(received *SQL, opt CompareOption, cmp comparer) error {
+func (snapshot *SQL) Compare(received *SQL, opt CompareOption, cmp func(a, b any, opts ...cmp.Option) error) error {
 	ok, err := CompareQuery(snapshot.Query, received.Query)
 	if err != nil {
 		return err

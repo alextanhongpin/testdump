@@ -2,25 +2,17 @@ package pgdump
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
-	"strconv"
+	"io"
 	"testing"
 
-	"github.com/alextanhongpin/testdump/pgdump/internal"
 	"github.com/alextanhongpin/testdump/pkg/diff"
+	"github.com/alextanhongpin/testdump/pkg/snapshot"
 )
 
 var d *Dumper
 
 func init() {
-	d = new(Dumper)
-}
-
-func New(opts ...Option) *Dumper {
-	return &Dumper{
-		opts: opts,
-	}
+	d = New()
 }
 
 func Dump(t *testing.T, received *SQL, opts ...Option) {
@@ -31,51 +23,65 @@ type Dumper struct {
 	opts []Option
 }
 
+func New(opts ...Option) *Dumper {
+	return &Dumper{
+		opts: opts,
+	}
+}
+
 func (d *Dumper) Dump(t *testing.T, received *SQL, opts ...Option) {
 	t.Helper()
 
 	opts = append(d.opts, opts...)
-	if err := dump(t, received, opts...); err != nil {
+
+	opt := newOptions().apply(opts...)
+	rwc, err := opt.newReadWriteCloser(t.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rwc.Close()
+
+	if err := Snapshot(rwc, received, opts...); err != nil {
 		t.Error(err)
 	}
 }
 
-func dump(t *testing.T, received *SQL, opts ...Option) error {
-	opt := newOption(opts...)
-	receivedBytes, err := Write(received, opt.transformers...)
-	if err != nil {
-		return err
-	}
+func Snapshot(rw io.ReadWriter, s *SQL, opts ...Option) error {
+	opt := newOptions().apply(opts...)
+	return snapshot.Snapshot(rw, opt.encoder(), opt.comparer(), s)
+}
 
-	file := filepath.Join("testdata", fmt.Sprintf("%s.sql", filepath.Join(t.Name(), opt.file)))
-	overwrite, _ := strconv.ParseBool(os.Getenv(opt.env))
-	written, err := internal.WriteFile(file, receivedBytes, overwrite)
-	if err != nil {
-		return err
-	}
+type encoder struct {
+	marshalFns []func(*SQL) error
+}
 
-	if written {
-		return nil
-	}
+func (e *encoder) Marshal(v any) ([]byte, error) {
+	return Write(v.(*SQL), e.marshalFns...)
+}
 
-	snapshotBytes, err := os.ReadFile(file)
-	if err != nil {
-		return err
-	}
+func (e *encoder) Unmarshal(b []byte) (a any, err error) {
+	return Read(b)
+}
 
-	snapshot, err := Read(snapshotBytes)
-	if err != nil {
-		return err
-	}
+type comparer struct {
+	cmpOpt CompareOption
+	colors bool
+	file   string
+}
+
+func (c *comparer) Compare(a, b any) error {
+	x := a.(*SQL)
+	y := b.(*SQL)
 
 	comparer := diff.Text
-	if opt.colors {
+	if c.colors {
 		comparer = diff.ANSI
 	}
 
-	if err := snapshot.Compare(received, opt.cmpOpt, comparer); err != nil {
-		if opt.file != "" {
-			return fmt.Errorf("%s: %w", opt.file, err)
+	err := x.Compare(y, c.cmpOpt, comparer)
+	if err != nil {
+		if c.file != "" {
+			return fmt.Errorf("%s: %w", c.file, err)
 		}
 
 		return err

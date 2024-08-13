@@ -2,18 +2,14 @@ package jsondump
 
 import (
 	"bytes"
-	gocmp "cmp"
 	"encoding/json"
-	"fmt"
 	"io"
-	"path/filepath"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/alextanhongpin/testdump/jsondump/internal"
 	"github.com/alextanhongpin/testdump/pkg/diff"
-	"github.com/alextanhongpin/testdump/pkg/file"
 	"github.com/alextanhongpin/testdump/pkg/snapshot"
 )
 
@@ -47,10 +43,7 @@ func (d *Dumper) Dump(t *testing.T, v any, opts ...Option) {
 		opt.apply(opt.registry.Get(v)...)
 	}
 
-	name := gocmp.Or(opt.file, internal.TypeName(v))
-	path := filepath.Join("testdata", t.Name(), fmt.Sprintf("%s.json", name))
-
-	f, err := file.New(path, opt.overwrite())
+	f, err := opt.newReadWriteCloser(t.Name(), internal.TypeName(v))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,8 +51,7 @@ func (d *Dumper) Dump(t *testing.T, v any, opts ...Option) {
 
 	var o io.ReadWriteCloser
 	if opt.rawOutput {
-		path := filepath.Join("testdata", t.Name(), fmt.Sprintf("%s.out", name))
-		o, err = file.New(path, true)
+		o, err = opt.newOutput(t.Name(), internal.TypeName(v))
 		if err != nil {
 			t.Fatal(err)
 		}

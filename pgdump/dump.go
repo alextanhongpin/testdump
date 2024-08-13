@@ -51,7 +51,7 @@ func Read(b []byte) (*SQL, error) {
 	return d, nil
 }
 
-func Write(sql *SQL, transformers ...Transformer) ([]byte, error) {
+func Write(sql *SQL, transformers ...func(*SQL) error) ([]byte, error) {
 	q, err := normalize(sql.Query)
 	if err != nil {
 		return nil, err

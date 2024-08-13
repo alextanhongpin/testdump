@@ -1,8 +1,13 @@
 package textdump
 
 import (
+	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 	"strconv"
+
+	"github.com/alextanhongpin/testdump/pkg/file"
 )
 
 type Option func(o *options)
@@ -41,6 +46,11 @@ func (o *options) encoder() *encoder {
 
 func (o *options) comparer() *comparer {
 	return &comparer{colors: o.colors}
+}
+
+func (o *options) newReadWriteCloser(name string) (io.ReadWriteCloser, error) {
+	path := filepath.Join("testdata", fmt.Sprintf("%s.txt", filepath.Join(name, o.file)))
+	return file.New(path, o.overwrite())
 }
 
 type Transformer func(b []byte) ([]byte, error)
