@@ -1,6 +1,7 @@
 package jsondump
 
 import (
+	gocmp "cmp"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -8,8 +9,12 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+
 	"github.com/alextanhongpin/testdump/jsondump/internal"
 	"github.com/alextanhongpin/testdump/pkg/diff"
+	"github.com/alextanhongpin/testdump/pkg/file"
+	"github.com/alextanhongpin/testdump/pkg/snapshot"
 )
 
 var d *Dumper
@@ -36,76 +41,97 @@ func (d *Dumper) Dump(t *testing.T, v any, opts ...Option) {
 	t.Helper()
 
 	opts = append(d.opts, opts...)
-	if err := dump(t, v, opts...); err != nil {
+	if err := Snapshot(t, v, opts...); err != nil {
 		t.Error(err)
 	}
 }
 
-func dump(t *testing.T, v any, opts ...Option) error {
-	// Extract from struct tags.
-	opt := newOption(v, opts...)
+func Snapshot(t *testing.T, v any, opts ...Option) error {
+	t.Helper()
 
-	receivedBytes, err := json.Marshal(v)
+	opt := newOption(opts...)
+
+	path := fmt.Sprintf("%s.json", gocmp.Or(opt.file, internal.TypeName(v)))
+	path = filepath.Join("testdata", t.Name(), path)
+
+	f, err := file.New(path, toBool(os.Getenv(opt.env)))
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
-	for _, transform := range opt.transformers {
-		receivedBytes, err = transform(receivedBytes)
+	encoder := &jsonEncoder{
+		marshalFns:   opt.transformers,
+		unmarshalFns: opt.ignorePathsTransformers,
+	}
+
+	comparer := &comparer{
+		cmpOpts: opt.cmpOpts,
+		colors:  opt.colors,
+	}
+
+	return snapshot.Snapshot(f, f, encoder, v, comparer.compare)
+}
+
+type jsonEncoder struct {
+	marshalFns   []func([]byte) ([]byte, error)
+	unmarshalFns []func([]byte) ([]byte, error)
+}
+
+func (e *jsonEncoder) Marshal(v any) ([]byte, error) {
+	b, err := json.MarshalIndent(v, "", " ")
+	if err != nil {
+		return nil, err
+	}
+
+	for _, fn := range e.marshalFns {
+		b, err = fn(b)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	file := filepath.Join(
-		"testdata",
-		t.Name(),
-		fmt.Sprintf("%s.json", internal.Or(opt.file, internal.TypeName(v))),
-	)
+	return b, nil
+}
 
-	overwrite, _ := strconv.ParseBool(os.Getenv(opt.env))
-	written, err := internal.WriteFile(file, receivedBytes, overwrite)
-	if err != nil {
-		return err
-	}
-
-	if written {
-		return nil
-	}
-
-	snapshotBytes, err := os.ReadFile(file)
-	if err != nil {
-		return err
-	}
-
-	// Since google's cmp does not have an option to ignore paths, we just mask
-	// the values before comparing.
-	// The masked values will not be written to the file.
-	for _, transform := range opt.ignorePathsTransformers {
-		snapshotBytes, err = transform(snapshotBytes)
+func (e *jsonEncoder) Unmarshal(b []byte) (a any, err error) {
+	for _, fn := range e.unmarshalFns {
+		b, err = fn(b)
 		if err != nil {
-			return err
-		}
-
-		receivedBytes, err = transform(receivedBytes)
-		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	// Convert back to map[string]any for nicer diff.
-	var snapshot, received any
-	if err := json.Unmarshal(snapshotBytes, &snapshot); err != nil {
-		return err
-	}
-	if err := json.Unmarshal(receivedBytes, &received); err != nil {
-		return err
+	err = json.Unmarshal(b, &a)
+	if err != nil {
+		return nil, err
 	}
 
+	return a, nil
+}
+
+type comparer struct {
+	colors       bool
+	transformers []func([]byte) ([]byte, error)
+	cmpOpts      []cmp.Option
+}
+
+func (c *comparer) compare(a, b any) error {
+
+	// Since google's cmp does not have an option to ignore paths, we just mask
+	// the values before comparing.
+	// The masked values will not be written to the file.
+
 	comparer := diff.Text
-	if opt.colors {
+	if c.colors {
 		comparer = diff.ANSI
 	}
 
-	return comparer(snapshot, received, opt.cmpOpts...)
+	return comparer(a, b, c.cmpOpts...)
+}
+
+func toBool(s string) bool {
+	t, _ := strconv.ParseBool(s)
+	return t
 }

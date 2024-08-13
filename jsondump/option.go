@@ -21,44 +21,20 @@ type option struct {
 	transformers            []func([]byte) ([]byte, error)
 	ignorePathsTransformers []func([]byte) ([]byte, error)
 	colors                  bool
-	indent                  bool
-	typ                     any
 }
 
 // newOption is a constructor for the option struct
-func newOption(a any, opts ...Option) *option {
+func newOption(opts ...Option) *option {
 	opt := new(option)
 	opt.colors = true
-	opt.indent = true
-	opt.typ = a
+	opt.env = "TESTDUMP"
 
 	// Apply each Option function to the new option
 	for _, o := range opts {
 		o(opt)
 	}
 
-	// Add the indent processor as the last processor to pretty print.
-	if opt.indent {
-		opt.transformers = append(opt.transformers, internal.Indent)
-	}
-
 	return opt
-}
-
-// MaskPathsFromStructTag is an Option that masks paths from a struct tag
-func MaskPathsFromStructTag(key, val, maskValue string) Option {
-	return func(o *option) {
-		maskPaths := internal.MaskPathsFromStructTag(o.typ, key, val)
-		o.transformers = append(o.transformers, internal.MaskPaths(maskValue, maskPaths))
-	}
-}
-
-// IgnorePathsFromStructTag is an Option that ignores paths from a struct tag
-func IgnorePathsFromStructTag(key, val string) Option {
-	return func(o *option) {
-		maskPaths := internal.IgnorePathsFromStructTag(o.typ, key, val)
-		o.ignorePathsTransformers = append(o.ignorePathsTransformers, internal.MaskPaths(ignoreValue, maskPaths))
-	}
 }
 
 // File is an Option that sets the file name
@@ -79,13 +55,6 @@ func Env(name string) Option {
 func Colors(colors bool) Option {
 	return func(o *option) {
 		o.colors = colors
-	}
-}
-
-// Indent is an Option that sets the indent flag
-func Indent(indent bool) Option {
-	return func(o *option) {
-		o.indent = indent
 	}
 }
 
