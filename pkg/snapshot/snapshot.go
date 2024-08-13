@@ -17,7 +17,7 @@ func Snapshot(w io.Writer, r io.Reader, enc encoder, v any, compare func(a, b an
 	if err != nil {
 		return err
 	}
-	if n == 0 {
+	if n != 0 {
 		return nil
 	}
 

@@ -51,8 +51,8 @@ func Snapshot(t *testing.T, v any, opts ...Option) error {
 
 	opt := newOption(opts...)
 
-	path := fmt.Sprintf("%s.json", gocmp.Or(opt.file, internal.TypeName(v)))
-	path = filepath.Join("testdata", t.Name(), path)
+	name := gocmp.Or(opt.file, internal.TypeName(v))
+	path := filepath.Join("testdata", t.Name(), fmt.Sprintf("%s.json", name))
 
 	f, err := file.New(path, toBool(os.Getenv(opt.env)))
 	if err != nil {
@@ -70,7 +70,7 @@ func Snapshot(t *testing.T, v any, opts ...Option) error {
 		colors:  opt.colors,
 	}
 
-	return snapshot.Snapshot(f, f, encoder, v, comparer.compare)
+	return snapshot.Snapshot(f, f, encoder, v, comparer.Compare)
 }
 
 type jsonEncoder struct {
@@ -112,12 +112,11 @@ func (e *jsonEncoder) Unmarshal(b []byte) (a any, err error) {
 }
 
 type comparer struct {
-	colors       bool
-	transformers []func([]byte) ([]byte, error)
-	cmpOpts      []cmp.Option
+	colors  bool
+	cmpOpts []cmp.Option
 }
 
-func (c *comparer) compare(a, b any) error {
+func (c *comparer) Compare(a, b any) error {
 
 	// Since google's cmp does not have an option to ignore paths, we just mask
 	// the values before comparing.

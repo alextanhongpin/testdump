@@ -1,9 +1,9 @@
 {
+ "name": "John",
  "age": 13,
- "birthday": "2024-05-22",
+ "birthday": "2024-08-13",
  "hobbies": [
   "reading"
  ],
- "imageURL": "https://example.com/image.jpg",
- "name": "John"
+ "imageURL": "https://example.com/image.jpg"
 }
