@@ -5,6 +5,7 @@ import (
 	gocmp "cmp"
 	"encoding/json"
 	"fmt"
+	"io"
 	"path/filepath"
 	"testing"
 
@@ -40,47 +41,55 @@ func (d *Dumper) Dump(t *testing.T, v any, opts ...Option) {
 	t.Helper()
 
 	opts = append(d.opts, opts...)
-	if err := dump(t, v, opts...); err != nil {
-		t.Error(err)
-	}
-}
-
-func dump(t *testing.T, v any, opts ...Option) error {
-	t.Helper()
 
 	opt := newOptions().apply(opts...)
 	if opt.registry != nil {
 		opt.apply(opt.registry.Get(v)...)
 	}
+
 	name := gocmp.Or(opt.file, internal.TypeName(v))
 	path := filepath.Join("testdata", t.Name(), fmt.Sprintf("%s.json", name))
 
+	f, err := file.New(path, opt.overwrite())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	var o io.ReadWriteCloser
 	if opt.rawOutput {
 		path := filepath.Join("testdata", t.Name(), fmt.Sprintf("%s.out", name))
-		o, err := file.New(path, true)
+		o, err = file.New(path, true)
 		if err != nil {
-			return err
+			t.Fatal(err)
 		}
 		defer o.Close()
+	}
 
+	if err := Snapshot(f, o, v, opts...); err != nil {
+		t.Error(err)
+	}
+}
+
+func Snapshot(rw io.ReadWriter, out io.Writer, v any, opts ...Option) error {
+	opt := newOptions().apply(opts...)
+	if opt.registry != nil {
+		opt.apply(opt.registry.Get(v)...)
+	}
+
+	if opt.rawOutput {
 		b, err := json.MarshalIndent(v, "", "  ")
 		if err != nil {
 			return err
 		}
 
-		_, err = o.Write(b)
+		_, err = out.Write(b)
 		if err != nil {
 			return err
 		}
 	}
 
-	f, err := file.New(path, opt.overwrite())
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	return snapshot.Snapshot(f, opt.encoder(), opt.comparer(), v)
+	return snapshot.Snapshot(rw, opt.encoder(), opt.comparer(), v)
 }
 
 type encoder struct {
