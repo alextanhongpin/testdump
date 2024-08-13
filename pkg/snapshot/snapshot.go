@@ -7,13 +7,17 @@ type encoder interface {
 	Unmarshal([]byte) (any, error)
 }
 
-func Snapshot(w io.Writer, r io.Reader, enc encoder, v any, compare func(a, b any) error) error {
+type comparer interface {
+	Compare(a, b any) error
+}
+
+func Snapshot(rw io.ReadWriter, enc encoder, cmp comparer, v any) error {
 	b, err := enc.Marshal(v)
 	if err != nil {
 		return err
 	}
 
-	n, err := w.Write(b)
+	n, err := rw.Write(b)
 	if err != nil {
 		return err
 	}
@@ -21,7 +25,12 @@ func Snapshot(w io.Writer, r io.Reader, enc encoder, v any, compare func(a, b an
 		return nil
 	}
 
-	c, err := io.ReadAll(r)
+	a, err := io.ReadAll(rw)
+	if err != nil {
+		return err
+	}
+
+	snap, err := enc.Unmarshal(a)
 	if err != nil {
 		return err
 	}
@@ -31,10 +40,5 @@ func Snapshot(w io.Writer, r io.Reader, enc encoder, v any, compare func(a, b an
 		return err
 	}
 
-	snap, err := enc.Unmarshal(c)
-	if err != nil {
-		return err
-	}
-
-	return compare(snap, recv)
+	return cmp.Compare(snap, recv)
 }

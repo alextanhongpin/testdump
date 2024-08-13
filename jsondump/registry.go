@@ -13,15 +13,15 @@ func NewRegistry() *Registry {
 }
 
 func (r *Registry) Register(v any, opts ...Option) {
-	r.opts[indirectType(v)] = opts
+	r.opts[nonPointerType(v)] = opts
 }
 
 func (r *Registry) Get(v any) []Option {
-	return r.opts[indirectType(v)]
+	return r.opts[nonPointerType(v)]
 }
 
 // Ensures that the type is not a pointer.
-func indirectType(v any) reflect.Type {
+func nonPointerType(v any) reflect.Type {
 	t := reflect.TypeOf(v)
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()

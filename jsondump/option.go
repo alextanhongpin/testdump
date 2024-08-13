@@ -13,26 +13,27 @@ const (
 	ignoreValue = "[IGNORED]"
 )
 
-// Define a function type Option that takes a pointer to an Options struct
-type Option func(o *Options)
+// Define a function type Option that takes a pointer to an options struct
+type Option func(o *options)
 
-// Define the Options struct with various fields
-type Options struct {
-	File                    string // A custom File name.
-	Env                     string // The environment variable name to overwrite the snapsnot.
-	CmpOpts                 []cmp.Option
-	Transformers            []func([]byte) ([]byte, error)
-	IgnorePathsTransformers []func([]byte) ([]byte, error)
-	Colors                  bool
-	Registry                *Registry
+// Define the options struct with various fields
+type options struct {
+	cmpOpts                 []cmp.Option
+	colors                  bool
+	env                     string // The environment variable name to overwrite the snapsnot.
+	ignorePathsTransformers []func([]byte) ([]byte, error)
+	rawOutput               bool
+	registry                *Registry
+	transformers            []func([]byte) ([]byte, error)
+	file                    string // A custom file name.
 }
 
-func (o *Options) overwrite() bool {
-	t, _ := strconv.ParseBool(os.Getenv(o.Env))
+func (o *options) overwrite() bool {
+	t, _ := strconv.ParseBool(os.Getenv(o.env))
 	return t
 }
 
-func (o *Options) apply(opts ...Option) *Options {
+func (o *options) apply(opts ...Option) *options {
 	for _, opt := range opts {
 		opt(o)
 	}
@@ -40,89 +41,90 @@ func (o *Options) apply(opts ...Option) *Options {
 	return o
 }
 
-func (o *Options) encoder() *jsonEncoder {
-	return &jsonEncoder{
-		marshalFns:   o.Transformers,
-		unmarshalFns: o.IgnorePathsTransformers,
+func (o *options) encoder() *encoder {
+	return &encoder{
+		marshalFns:   o.transformers,
+		unmarshalFns: o.ignorePathsTransformers,
 	}
 }
 
-func (o *Options) comparer() *comparer {
+func (o *options) comparer() *comparer {
 	return &comparer{
-		cmpOpts: o.CmpOpts,
-		colors:  o.Colors,
+		cmpOpts: o.cmpOpts,
+		colors:  o.colors,
 	}
 }
 
-func NewOptions() *Options {
-	return &Options{
-		Colors: true,
-		Env:    "TESTDUMP",
+func newOptions() *options {
+	return &options{
+		colors:    true,
+		env:       "TESTDUMP",
+		rawOutput: true,
 	}
 }
 
-// File is an Option that sets the File name
+// File is an Option that sets the file name
 func File(name string) Option {
-	return func(o *Options) {
-		o.File = name
+	return func(o *options) {
+		o.file = name
 	}
 }
 
 // Env is an Option that sets the environment variable name
 func Env(name string) Option {
-	return func(o *Options) {
-		o.Env = name
+	return func(o *options) {
+		o.env = name
 	}
 }
 
-// Colors is an Option that sets the Colors flag
-func Colors(Colors bool) Option {
-	return func(o *Options) {
-		o.Colors = Colors
+// Colors is an Option that sets the colors flag
+func Colors(colors bool) Option {
+	return func(o *options) {
+		o.colors = colors
 	}
 }
 
-// Transformer is an Option that adds a transformer function
-func Transformer(p ...func([]byte) ([]byte, error)) Option {
-	return func(o *Options) {
-		o.Transformers = append(o.Transformers, p...)
+// Transformers is an Option that adds a transformer function
+func Transformers(p ...func([]byte) ([]byte, error)) Option {
+	return func(o *options) {
+		o.transformers = append(o.transformers, p...)
 	}
 }
 
 // CmpOpts is an Option that adds comparison options
 func CmpOpts(opts ...cmp.Option) Option {
-	return func(o *Options) {
-		o.CmpOpts = append(o.CmpOpts, opts...)
+	return func(o *options) {
+		o.cmpOpts = append(o.cmpOpts, opts...)
 	}
 }
 
 // IgnoreFields is an Option that ignores certain fields
 func IgnoreFields(fields ...string) Option {
-	return func(o *Options) {
-		o.CmpOpts = append(o.CmpOpts, internal.IgnoreMapEntries(fields...))
+	return func(o *options) {
+		o.cmpOpts = append(o.cmpOpts, internal.IgnoreMapEntries(fields...))
 	}
 }
 
 // IgnorePaths is an Option that ignores certain paths
 func IgnorePaths(paths ...string) Option {
-	return func(o *Options) {
-		o.IgnorePathsTransformers = append(o.IgnorePathsTransformers, internal.MaskPaths(ignoreValue, paths))
+	return func(o *options) {
+		o.ignorePathsTransformers = append(o.ignorePathsTransformers, internal.MaskPaths(ignoreValue, paths))
 	}
 }
 
 // MaskFields is an Option that masks certain fields
 func MaskFields(mask string, fields []string) Option {
-	return Transformer(internal.MaskFields(mask, fields))
+	return Transformers(internal.MaskFields(mask, fields))
 }
 
 // MaskPaths is an Option that masks certain paths
 func MaskPaths(mask string, paths []string) Option {
-	return Transformer(internal.MaskPaths(mask, paths))
+	return Transformers(internal.MaskPaths(mask, paths))
 }
 
 func WithRegistry(reg *Registry) Option {
-	return func(o *Options) {
-		o.Registry = reg
+	return func(o *options) {
+		o.registry = reg
 	}
 }
 
