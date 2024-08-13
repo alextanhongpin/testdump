@@ -4,9 +4,7 @@ import (
 	gocmp "cmp"
 	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
-	"strconv"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -49,28 +47,21 @@ func (d *Dumper) Dump(t *testing.T, v any, opts ...Option) {
 func Snapshot(t *testing.T, v any, opts ...Option) error {
 	t.Helper()
 
-	opt := newOption(opts...)
+	opt := NewOptions().apply(opts...)
+	if opt.Registry != nil {
+		opt.apply(opt.Registry.Get(v)...)
+	}
 
-	name := gocmp.Or(opt.file, internal.TypeName(v))
+	name := gocmp.Or(opt.File, internal.TypeName(v))
 	path := filepath.Join("testdata", t.Name(), fmt.Sprintf("%s.json", name))
 
-	f, err := file.New(path, toBool(os.Getenv(opt.env)))
+	f, err := file.New(path, opt.overwrite())
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	encoder := &jsonEncoder{
-		marshalFns:   opt.transformers,
-		unmarshalFns: opt.ignorePathsTransformers,
-	}
-
-	comparer := &comparer{
-		cmpOpts: opt.cmpOpts,
-		colors:  opt.colors,
-	}
-
-	return snapshot.Snapshot(f, f, encoder, v, comparer.Compare)
+	return snapshot.Snapshot(f, f, opt.encoder(), v, opt.comparer().Compare)
 }
 
 type jsonEncoder struct {
@@ -128,9 +119,4 @@ func (c *comparer) Compare(a, b any) error {
 	}
 
 	return comparer(a, b, c.cmpOpts...)
-}
-
-func toBool(s string) bool {
-	t, _ := strconv.ParseBool(s)
-	return t
 }

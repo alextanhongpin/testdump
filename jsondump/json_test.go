@@ -350,3 +350,21 @@ func TestCUESchemaPath(t *testing.T) {
 		jsondump.IgnoreFields("birthday"),
 	)
 }
+
+func TestRegistry(t *testing.T) {
+	type User struct {
+		Name         string
+		LastLoggedIn time.Time
+	}
+	type Account struct {
+		Name      string
+		CreatedAt time.Time
+	}
+
+	reg := jsondump.NewRegistry()
+	reg.Register(User{}, jsondump.IgnoreFields("LastLoggedIn"))
+	reg.Register(Account{}, jsondump.IgnoreFields("CreatedAt"))
+
+	jsondump.Dump(t, User{Name: "John", LastLoggedIn: time.Now()}, jsondump.WithRegistry(reg))
+	jsondump.Dump(t, Account{Name: "Personal Account", CreatedAt: time.Now()}, jsondump.WithRegistry(reg))
+}
