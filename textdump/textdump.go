@@ -1,10 +1,12 @@
 package textdump
 
 import (
-	"io"
+	"fmt"
+	"path/filepath"
 	"testing"
 
 	"github.com/alextanhongpin/testdump/pkg/diff"
+	"github.com/alextanhongpin/testdump/pkg/file"
 	"github.com/alextanhongpin/testdump/pkg/snapshot"
 )
 
@@ -29,28 +31,36 @@ func Dump(t *testing.T, b []byte, opts ...Option) {
 func (d *Dumper) Dump(t *testing.T, b []byte, opts ...Option) {
 	t.Helper()
 
-	opts = append(d.opt, opts...)
+	opt := newOptions().apply(append(d.opt, opts...)...)
 
-	opt := newOptions().apply(opts...)
-	rwc, err := opt.newReadWriteCloser(t.Name())
+	path := filepath.Join("testdata", fmt.Sprintf("%s.txt", filepath.Join(t.Name(), opt.file)))
+	f, err := file.New(path, opt.overwrite())
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rwc.Close()
+	defer f.Close()
 
-	if err := Snapshot(rwc, b, opts...); err != nil {
+	if err := snapshot.Snapshot(f, opt.encoder(), opt.comparer(), b); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func Snapshot(rw io.ReadWriter, b []byte, opts ...Option) (err error) {
-	opt := newOptions().apply(opts...)
+type comparer struct {
+	colors bool
+}
 
-	return snapshot.Snapshot(rw, opt.encoder(), opt.comparer(), b)
+func (c *comparer) Compare(a, b any) error {
+	comparer := diff.Text
+	if c.colors {
+		comparer = diff.ANSI
+	}
+
+	// Convert to string for better diff.
+	return comparer(string(a.([]byte)), string(b.([]byte)))
 }
 
 type encoder struct {
-	marshalFns []Transformer
+	marshalFns []func([]byte) ([]byte, error)
 }
 
 func (e *encoder) Marshal(v any) (b []byte, err error) {
@@ -67,18 +77,4 @@ func (e *encoder) Marshal(v any) (b []byte, err error) {
 
 func (e *encoder) Unmarshal(b []byte) (a any, err error) {
 	return b, nil
-}
-
-type comparer struct {
-	colors bool
-}
-
-func (c *comparer) Compare(a, b any) error {
-	comparer := diff.Text
-	if c.colors {
-		comparer = diff.ANSI
-	}
-
-	// Convert to string for better diff.
-	return comparer(string(a.([]byte)), string(b.([]byte)))
 }
