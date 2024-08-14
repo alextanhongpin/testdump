@@ -22,6 +22,10 @@ func (r *Registry) Get(v any) []Option {
 
 // Ensures that the type is not a pointer.
 func nonPointerType(v any) reflect.Type {
+	if v == nil {
+		return reflect.TypeOf(none{})
+	}
+
 	t := reflect.TypeOf(v)
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
@@ -29,3 +33,5 @@ func nonPointerType(v any) reflect.Type {
 
 	return t
 }
+
+type none struct{}

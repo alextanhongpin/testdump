@@ -311,10 +311,10 @@ func TestRegistry(t *testing.T) {
 	// Create a registry that stores the options for different types.
 	// The types are automatically inferred from the value passed to the Register
 	// method.
-	reg := jsondump.NewRegistry()
-	reg.Register(&User{}, jsondump.IgnoreFields("LastLoggedIn"))
-	reg.Register(Account{}, jsondump.IgnoreFields("CreatedAt"))
+	jd := jsondump.New()
+	jd.Register(&User{}, jsondump.IgnoreFields("LastLoggedIn"))
+	jd.Register(Account{}, jsondump.IgnoreFields("CreatedAt"))
 
-	jsondump.Dump(t, User{Name: "John", LastLoggedIn: time.Now()}, jsondump.WithRegistry(reg))
-	jsondump.Dump(t, Account{Name: "Personal Account", CreatedAt: time.Now()}, jsondump.WithRegistry(reg))
+	jd.Dump(t, User{Name: "John", LastLoggedIn: time.Now()})
+	jd.Dump(t, &Account{Name: "Personal Account", CreatedAt: time.Now()})
 }

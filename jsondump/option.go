@@ -25,7 +25,6 @@ type options struct {
 	file                    string // A custom file name.
 	ignorePathsTransformers []func([]byte) ([]byte, error)
 	rawOutput               bool
-	registry                *Registry
 	transformers            []func([]byte) ([]byte, error)
 }
 
@@ -121,12 +120,6 @@ func MaskFields(mask string, fields []string) Option {
 // MaskPaths is an Option that masks certain paths
 func MaskPaths(mask string, paths []string) Option {
 	return Transformers(internal.MaskPaths(mask, paths))
-}
-
-func WithRegistry(reg *Registry) Option {
-	return func(o *options) {
-		o.registry = reg
-	}
 }
 
 // Define a struct for a Masker
