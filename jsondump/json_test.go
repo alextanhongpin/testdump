@@ -84,27 +84,6 @@ func TestIgnorePaths(t *testing.T) {
 	)
 }
 
-func TestIgnoreFromStructTag(t *testing.T) {
-	type Banner struct {
-		ExpiresIn time.Time `json:"expiresIn" cmp:"-"`
-	}
-	type MultiBanner struct {
-		Banner1 Banner `json:"banner1"`
-		Banner2 Banner `json:"banner2"`
-	}
-
-	banner := MultiBanner{
-		Banner1: Banner{
-			ExpiresIn: time.Now().Add(1 * time.Hour),
-		},
-		Banner2: Banner{
-			ExpiresIn: time.Now().Add(1 * time.Hour),
-		},
-	}
-
-	jsondump.Dump(t, banner, jsondump.IgnorePathsFromStructTag("cmp", "-"))
-}
-
 func TestMaskFields(t *testing.T) {
 	type Account struct {
 		Type  string `json:"type"`
@@ -132,40 +111,15 @@ func TestMaskFields(t *testing.T) {
 	jsondump.Dump(t, accounts, m.MaskFields("email"))
 }
 
-func TestMaskFieldsFromStructTag(t *testing.T) {
-	type Account struct {
-		Type  string `json:"type"`
-		Email string `json:"email" mask:"true"`
-	}
-
-	type Accounts struct {
-		Email  Account `json:"email"`
-		Google Account `json:"google"`
-	}
-
-	accounts := Accounts{
-		Email: Account{
-			Type:  "email",
-			Email: "john.appleseed@mail.com",
-		},
-		Google: Account{
-			Type:  "google",
-			Email: "john.appleseed@gmail.com",
-		},
-	}
-
-	jsondump.Dump(t, accounts, jsondump.MaskPathsFromStructTag("mask", "true", "[REDACTED]"))
-}
-
 func TestNew(t *testing.T) {
 	type User struct {
-		Password  string    `json:"password" mask:"true"`
-		CreatedAt time.Time `json:"createdAt" cmp:"-"`
+		Password  string    `json:"password"`
+		CreatedAt time.Time `json:"createdAt"`
 	}
 
 	jd := jsondump.New(
-		jsondump.IgnorePathsFromStructTag("cmp", "-"),
-		jsondump.MaskPathsFromStructTag("mask", "true", "[REDACTED]"),
+		jsondump.IgnorePaths("$.createdAt"),
+		jsondump.MaskPaths("[REDACTED]", []string{"$.password"}),
 	)
 	jd.Dump(t, User{
 		Password:  "password",
@@ -201,7 +155,7 @@ func TestMaskPaths(t *testing.T) {
 func TestCustomTransformer(t *testing.T) {
 	jsondump.Dump(t, map[string]any{
 		"name": "John",
-	}, jsondump.Transformer(func(b []byte) ([]byte, error) {
+	}, jsondump.Transformers(func(b []byte) ([]byte, error) {
 		return bytes.ToUpper(b), nil
 	}))
 }
@@ -209,7 +163,7 @@ func TestCustomTransformer(t *testing.T) {
 func TestMultipleTransformers(t *testing.T) {
 	jsondump.Dump(t, map[string]any{
 		"name": "John",
-	}, jsondump.Transformer(
+	}, jsondump.Transformers(
 		func(b []byte) ([]byte, error) {
 			return bytes.ToLower(b), nil
 		},
@@ -272,7 +226,7 @@ let url = =~ "^https://(.+)"
 		},
 	}
 
-	jsondump.Dump(t, u, jsondump.Transformer(func(b []byte) ([]byte, error) {
+	jsondump.Dump(t, u, jsondump.Transformers(func(b []byte) ([]byte, error) {
 		return b, c.Validate(b)
 	}),
 		jsondump.IgnoreFields("birthday"),
@@ -306,7 +260,7 @@ name!: string & strings.MinRunes(1)`,
 		},
 	}
 
-	jsondump.Dump(t, u, jsondump.Transformer(func(b []byte) ([]byte, error) {
+	jsondump.Dump(t, u, jsondump.Transformers(func(b []byte) ([]byte, error) {
 		return b, c.Validate(b)
 	}),
 		jsondump.IgnoreFields("birthday"),
@@ -337,9 +291,30 @@ func TestCUESchemaPath(t *testing.T) {
 		},
 	}
 
-	jsondump.Dump(t, u, jsondump.Transformer(func(b []byte) ([]byte, error) {
+	jsondump.Dump(t, u, jsondump.Transformers(func(b []byte) ([]byte, error) {
 		return b, c.Validate(b)
 	}),
 		jsondump.IgnoreFields("birthday"),
 	)
+}
+
+func TestRegistry(t *testing.T) {
+	type User struct {
+		Name         string
+		LastLoggedIn time.Time
+	}
+	type Account struct {
+		Name      string
+		CreatedAt time.Time
+	}
+
+	// Create a registry that stores the options for different types.
+	// The types are automatically inferred from the value passed to the Register
+	// method.
+	jd := jsondump.New()
+	jd.Register(&User{}, jsondump.IgnoreFields("LastLoggedIn"))
+	jd.Register(Account{}, jsondump.IgnoreFields("CreatedAt"))
+
+	jd.Dump(t, User{Name: "John", LastLoggedIn: time.Now()})
+	jd.Dump(t, &Account{Name: "Personal Account", CreatedAt: time.Now()})
 }

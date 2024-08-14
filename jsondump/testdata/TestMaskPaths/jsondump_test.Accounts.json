@@ -1,10 +1,10 @@
 {
- "email": {
-  "email": "[MASKED]",
-  "type": "email"
- },
- "google": {
-  "email": "john.appleseed@gmail.com",
-  "type": "google"
- }
+  "email": {
+    "email": "[MASKED]",
+    "type": "email"
+  },
+  "google": {
+    "email": "john.appleseed@gmail.com",
+    "type": "google"
+  }
 }

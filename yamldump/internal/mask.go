@@ -2,7 +2,6 @@ package internal
 
 import (
 	"encoding/json"
-	"reflect"
 	"slices"
 
 	"github.com/alextanhongpin/testdump/pkg/reviver"
@@ -61,32 +60,4 @@ func MaskPaths(mask string, paths []string) func([]byte) ([]byte, error) {
 
 		return json.MarshalIndent(m, "", " ")
 	}
-}
-
-// MaskPathsFromStructTag mask the fields with the tag `mask:"true".
-// All fields will have the same mask value.
-func MaskPathsFromStructTag(a any, key, val string) []string {
-	var maskPaths []string
-	IterStructFields(a, func(k string, f reflect.StructField, v reflect.Value) {
-		// `mask:"true"`
-		tag := f.Tag.Get(key)
-		if tag == val {
-			maskPaths = append(maskPaths, k)
-		}
-	})
-
-	return maskPaths
-}
-
-func IgnorePathsFromStructTag(a any, key, val string) []string {
-	var maskPaths []string
-	IterStructFields(a, func(k string, f reflect.StructField, v reflect.Value) {
-		// `cmp:"-"`
-		tag := f.Tag.Get(key)
-		if tag == val {
-			maskPaths = append(maskPaths, k)
-		}
-	})
-
-	return maskPaths
 }

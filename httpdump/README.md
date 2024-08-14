@@ -86,7 +86,7 @@ Hello, World!
 
 ### Transformers
 
-Transformers allows modifying the request/response body before snapshotting. 
+Transformers allows modifying the request/response body before snapshotting.
 You can for example mask headers that contains random or sensitive values.
 
 ```go
@@ -120,17 +120,17 @@ When the content of the generated dump doesn't match the snapshot, you can see t
 ```bash
 ➜  http git:(http) ✗ gotest
 --- FAIL: TestDump (0.00s)
-    http_test.go:30: Response Body: 
-        
+    http_test.go:30: Response Body:
+
           Snapshot(-)
           Received(+)
-        
-        
+
+
           string(
         -       "Hello, world!",
         +       "Hello, World!",
           )
-        
+
 FAIL
 exit status 1
 FAIL    github.com/alextanhongpin/testdump/http     0.449s

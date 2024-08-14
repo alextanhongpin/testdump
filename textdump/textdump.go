@@ -2,81 +2,79 @@ package textdump
 
 import (
 	"fmt"
-	"os"
-	"strconv"
+	"path/filepath"
 	"testing"
 
 	"github.com/alextanhongpin/testdump/pkg/diff"
-	"github.com/alextanhongpin/testdump/textdump/internal"
+	"github.com/alextanhongpin/testdump/pkg/file"
+	"github.com/alextanhongpin/testdump/pkg/snapshot"
 )
 
 var d *Dumper
 
 func init() {
-	d = new(Dumper)
-}
-
-func New(opts ...Option) *Dumper {
-	return &Dumper{opt: opts}
+	d = New()
 }
 
 type Dumper struct {
-	opt []Option
+	opts []Option
 }
 
-func Dump(t *testing.T, received []byte, opts ...Option) {
-	d.Dump(t, received, opts...)
+func New(opts ...Option) *Dumper {
+	return &Dumper{opts: opts}
 }
 
-func (d *Dumper) Dump(t *testing.T, received []byte, opts ...Option) {
+func Dump(t *testing.T, b []byte, opts ...Option) {
+	d.Dump(t, b, opts...)
+}
+
+func (d *Dumper) Dump(t *testing.T, b []byte, opts ...Option) {
 	t.Helper()
 
-	if err := dump(t, received, opts...); err != nil {
+	opt := newOptions().apply(append(d.opts, opts...)...)
+
+	path := filepath.Join("testdata", fmt.Sprintf("%s.txt", filepath.Join(t.Name(), opt.file)))
+	f, err := file.New(path, opt.overwrite())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	if err := snapshot.Snapshot(f, opt.encoder(), opt.comparer(), b); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func dump(t *testing.T, received []byte, opts ...Option) error {
-	opt := newOption(opts...)
+type comparer struct {
+	colors bool
+}
 
-	for _, transform := range opt.transformers {
-		var err error
-		received, err = transform(received)
-		if err != nil {
-			return err
-		}
-	}
-
-	file := fmt.Sprintf("testdata/%s.txt", or(opt.file, t.Name()))
-	overwrite, _ := strconv.ParseBool(os.Getenv(opt.env))
-	written, err := internal.WriteFile(file, received, overwrite)
-	if err != nil {
-		return err
-	}
-
-	if written {
-		return nil
-	}
-
-	snapshot, err := os.ReadFile(file)
-	if err != nil {
-		return err
-	}
-
+func (c *comparer) Compare(a, b any) error {
 	comparer := diff.Text
-	if opt.colors {
+	if c.colors {
 		comparer = diff.ANSI
 	}
 
 	// Convert to string for better diff.
-	return comparer(string(snapshot), string(received))
+	return comparer(string(a.([]byte)), string(b.([]byte)))
 }
 
-func or[T comparable](a, b T) T {
-	var zero T
-	if a != zero {
-		return a
+type encoder struct {
+	marshalFns []func([]byte) ([]byte, error)
+}
+
+func (e *encoder) Marshal(v any) (b []byte, err error) {
+	b = v.([]byte)
+	for _, fn := range e.marshalFns {
+		b, err = fn(b)
+		if err != nil {
+			return
+		}
 	}
 
-	return b
+	return
+}
+
+func (e *encoder) Unmarshal(b []byte) (a any, err error) {
+	return b, nil
 }

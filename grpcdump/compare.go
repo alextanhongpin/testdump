@@ -16,41 +16,55 @@ type CompareOption struct {
 	Header   []cmp.Option // Options for comparing the header part of a gRPC message.
 }
 
+type comparer struct {
+	colors bool
+	opt    CompareOption
+}
+
+func (c *comparer) Compare(a, b any) error {
+	return c.compare(a.(*GRPC), b.(*GRPC))
+}
+
 // Compare is a method on the GRPC struct.
 // It compares the current GRPC object (snapshot) with another GRPC object (received) using the provided CompareOption and comparer function.
 // The comparer function should take two any objects and a slice of cmp.Option objects, and return an error.
 // If the comparison is successful, the method should return nil.
 // If the comparison fails, the method should return an error.
-func (snapshot *GRPC) Compare(received *GRPC, opt CompareOption, comparer func(a, b any, opts ...cmp.Option) error) error {
+func (c *comparer) compare(snapshot, received *GRPC) error {
 	x := snapshot
 	y := received
+	opt := c.opt
 
-	compare := diff.ANSI
-	if err := compare(x.Addr, y.Addr); err != nil {
+	comparer := diff.Text
+	if c.colors {
+		comparer = diff.ANSI
+	}
+
+	if err := comparer(x.Addr, y.Addr); err != nil {
 		return fmt.Errorf("Addr: %w", err)
 	}
 
-	if err := compare(x.FullMethod, y.FullMethod); err != nil {
+	if err := comparer(x.FullMethod, y.FullMethod); err != nil {
 		return fmt.Errorf("Full Method: %w", err)
 	}
 
-	if err := compare(x.Messages, y.Messages, opt.Message...); err != nil {
+	if err := comparer(x.Messages, y.Messages, opt.Message...); err != nil {
 		return fmt.Errorf("Message: %w", err)
 	}
 
-	if err := compare(x.Status, y.Status); err != nil {
+	if err := comparer(x.Status, y.Status); err != nil {
 		return fmt.Errorf("Status: %w", err)
 	}
 
-	if err := compare(x.Metadata, y.Metadata, opt.Metadata...); err != nil {
+	if err := comparer(x.Metadata, y.Metadata, opt.Metadata...); err != nil {
 		return fmt.Errorf("Metadata: %w", err)
 	}
 
-	if err := compare(x.Header, y.Header, opt.Header...); err != nil {
+	if err := comparer(x.Header, y.Header, opt.Header...); err != nil {
 		return fmt.Errorf("Header: %w", err)
 	}
 
-	if err := compare(x.Trailer, y.Trailer, opt.Trailer...); err != nil {
+	if err := comparer(x.Trailer, y.Trailer, opt.Trailer...); err != nil {
 		return fmt.Errorf("Trailer: %w", err)
 	}
 

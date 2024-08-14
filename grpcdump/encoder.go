@@ -9,13 +9,33 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/rogpeppe/go-internal/txtar"
+	"golang.org/x/tools/txtar"
 	"google.golang.org/grpc/metadata"
 )
 
 var (
 	ErrInvalidMetadata = fmt.Errorf("grpcdump: invalid metadata")
 )
+
+type encoder struct {
+	marshalFns []func(*GRPC) error
+}
+
+func (e *encoder) Marshal(v any) ([]byte, error) {
+	g := v.(*GRPC)
+
+	for _, fn := range e.marshalFns {
+		if err := fn(g); err != nil {
+			return nil, err
+		}
+	}
+
+	return Write(g)
+}
+
+func (e *encoder) Unmarshal(b []byte) (a any, err error) {
+	return Read(b)
+}
 
 const (
 	lineFile         = "line"

@@ -62,7 +62,7 @@ func TestGRPCClientStreaming(t *testing.T) {
 	client := pb.NewGreeterServiceClient(conn)
 
 	// Create a new recorder.
-	ctx = grpcdump.NewRecorder(t, ctx)
+	ctx = grpcdump.NewRecorder(t, ctx, grpcdump.IgnoreMetadata("user-agent"))
 	ctx = metadata.AppendToOutgoingContext(ctx,
 		"md-val", "md-val",
 		"md-val-bin", "md-val-bin",
@@ -96,7 +96,7 @@ func TestGRPCBidirectionalStreaming(t *testing.T) {
 	client := pb.NewGreeterServiceClient(conn)
 
 	// Create a new recorder.
-	ctx = grpcdump.NewRecorder(t, ctx)
+	ctx = grpcdump.NewRecorder(t, ctx, grpcdump.IgnoreMetadata("user-agent"))
 	ctx = metadata.AppendToOutgoingContext(ctx,
 		"md-val", "md-val",
 		"md-val-bin", "md-val-bin",
@@ -201,7 +201,10 @@ func TestGRPCUnary(t *testing.T) {
 		client := pb.NewGreeterServiceClient(conn)
 
 		// Create a new recorder.
-		ctx = grpcdump.NewRecorder(t, ctx, grpcdump.MaskMetadata("[MASKED]", []string{"authorization"}))
+		ctx = grpcdump.NewRecorder(t, ctx,
+			grpcdump.MaskMetadata("[MASKED]", []string{"authorization"}),
+			grpcdump.IgnoreMetadata("user-agent"),
+		)
 
 		ctx = metadata.AppendToOutgoingContext(ctx,
 			"md-val", "md-val",
@@ -224,7 +227,9 @@ func TestGRPCUnary(t *testing.T) {
 		client := pb.NewGreeterServiceClient(conn)
 
 		// Create a new recorder.
-		ctx = grpcdump.NewRecorder(t, ctx)
+		ctx = grpcdump.NewRecorder(t, ctx,
+			grpcdump.IgnoreMetadata("user-agent"),
+		)
 
 		ctx = metadata.AppendToOutgoingContext(ctx,
 			"md-val", "md-val",
@@ -248,19 +253,31 @@ func TestMaskOptions(t *testing.T) {
 	}{
 		{
 			name: "mask metadata",
-			opts: []grpcdump.Option{grpcdump.MaskMetadata("[MASKED]", []string{"authorization"})},
+			opts: []grpcdump.Option{
+				grpcdump.MaskMetadata("[MASKED]", []string{"authorization"}),
+				grpcdump.IgnoreMetadata("user-agent"),
+			},
 		},
 		{
 			name: "mask trailer",
-			opts: []grpcdump.Option{grpcdump.MaskTrailer("[MASKED]", []string{"trailer-key"})},
+			opts: []grpcdump.Option{
+				grpcdump.MaskTrailer("[MASKED]", []string{"trailer-key"}),
+				grpcdump.IgnoreMetadata("user-agent"),
+			},
 		},
 		{
 			name: "mask header",
-			opts: []grpcdump.Option{grpcdump.MaskHeader("[MASKED]", []string{"header-key"})},
+			opts: []grpcdump.Option{
+				grpcdump.MaskHeader("[MASKED]", []string{"header-key"}),
+				grpcdump.IgnoreMetadata("user-agent"),
+			},
 		},
 		{
 			name: "mask message fields",
-			opts: []grpcdump.Option{grpcdump.MaskMessageFields("[MASKED]", []string{"name"})},
+			opts: []grpcdump.Option{
+				grpcdump.MaskMessageFields("[MASKED]", []string{"name"}),
+				grpcdump.IgnoreMetadata("user-agent"),
+			},
 		},
 	}
 
@@ -315,7 +332,7 @@ func TestIgnoreOptions(t *testing.T) {
 		grpcdump.IgnoreMessageFields("name", "message"),
 		grpcdump.IgnoreHeader("header-date"),
 		grpcdump.IgnoreTrailer("trailer-date"),
-		grpcdump.IgnoreMetadata("metadata-date"),
+		grpcdump.IgnoreMetadata("metadata-date", "user-agent"),
 	)
 
 	ctx = metadata.AppendToOutgoingContext(ctx,
@@ -504,7 +521,7 @@ func testServerStreaming(t *testing.T, req *pb.ListGreetingsRequest) error {
 	client := pb.NewGreeterServiceClient(conn)
 
 	// Create a new recorder.
-	ctx = grpcdump.NewRecorder(t, ctx)
+	ctx = grpcdump.NewRecorder(t, ctx, grpcdump.IgnoreMetadata("user-agent"))
 
 	ctx = metadata.AppendToOutgoingContext(ctx,
 		"md-val", "md-val",

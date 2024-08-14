@@ -7,13 +7,13 @@ import (
 	"mime"
 	"net/http"
 	"net/http/httptest"
-	"os"
+	"path/filepath"
 	"sort"
-	"strconv"
 	"testing"
 
 	"github.com/alextanhongpin/testdump/httpdump/internal"
-	"github.com/alextanhongpin/testdump/pkg/diff"
+	"github.com/alextanhongpin/testdump/pkg/file"
+	"github.com/alextanhongpin/testdump/pkg/snapshot"
 )
 
 // d is a global variable that holds a pointer to a Dumper instance.
@@ -54,8 +54,9 @@ func New(opts ...Option) *Dumper {
 	}
 }
 
-// Handler is a method on the Dumper struct that takes a testing object, an HTTP handler, and a variadic list of options.
-// It returns a new handler instance with these values.
+// Handler is a method on the Dumper struct that takes a testing object, an
+// HTTP handler, and a variadic list of options. It returns a new handler
+// instance with these values.
 func (d *Dumper) Handler(t *testing.T, h http.Handler, opts ...Option) http.Handler {
 	return &handler{
 		t:    t,
@@ -64,7 +65,8 @@ func (d *Dumper) Handler(t *testing.T, h http.Handler, opts ...Option) http.Hand
 	}
 }
 
-// HandlerFunc is similar to Handler, but it takes an HTTP handler function instead of an HTTP handler.
+// HandlerFunc is similar to Handler, but it takes an HTTP handler function
+// instead of an HTTP handler.
 func (d *Dumper) HandlerFunc(t *testing.T, h http.HandlerFunc, opts ...Option) http.Handler {
 	return &handler{
 		t:    t,
@@ -74,7 +76,7 @@ func (d *Dumper) HandlerFunc(t *testing.T, h http.HandlerFunc, opts ...Option) h
 }
 
 // Dump is a method on the Dumper struct that takes a testing object, an HTTP response writer, an HTTP request, and a variadic list of options.
-// It appends the options to the Dumper's options and then calls the dump function with the testing object, a new HTTP instance, and the options.
+// It appends the options to the Dumper's options and then calls the Snapshot function with the testing object, a new HTTP instance, and the options.
 func (d *Dumper) Dump(t *testing.T, w *http.Response, r *http.Request, opts ...Option) {
 	t.Helper()
 
@@ -93,7 +95,7 @@ type handler struct {
 
 // ServeHTTP is a method on the handler struct that takes an HTTP response writer and an HTTP request.
 // It clones the request, calls the handler's ServeHTTP method with the response writer and the cloned request,
-// and then calls the dump function with the testing object, a new HTTP instance, and the options.
+// and then calls the Snapshot function with the testing object, a new HTTP instance, and the options.
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	t := h.t
 	t.Helper()
@@ -112,89 +114,64 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.h.ServeHTTP(wr, rc)
 
 	// Dump the request and response to the file.
-	if err := dump(t, &HTTP{
-		Response: wr.Result(),
-		Request:  r,
-	}, h.opts...); err != nil {
-		t.Fatal(err)
+	if err := dump(t, &HTTP{Response: wr.Result(), Request: r}, h.opts...); err != nil {
+		t.Error(err)
 	}
 }
 
-// dump is a function that takes a testing object, an HTTP instance, and a variadic list of options.
-// It clones the HTTP instance, applies the transformers to the cloned instance, writes the cloned instance to a file,
-// reads the snapshot data from the file, and then compares the snapshot data with the cloned instance.
-func dump(t *testing.T, h2p *HTTP, opts ...Option) error {
-	opt := newOption(opts...)
+// dump is a function that takes a testing object, an HTTP instance, and a
+// variadic list of options.
+// It clones the HTTP instance, applies the transformers to the cloned
+// instance, writes the cloned instance to a file, reads the snapshot data from
+// the file, and then compares the snapshot data with the cloned instance.
+func dump(t *testing.T, h *HTTP, opts ...Option) error {
+	opt := newOptions().apply(opts...)
 
-	received, err := h2p.Clone()
+	path := filepath.Join("testdata", fmt.Sprintf("%s.http", filepath.Join(t.Name(), opt.file)))
+	f, err := file.New(path, opt.overwrite())
 	if err != nil {
 		return err
 	}
-
-	for _, transform := range opt.transformers {
-		if err := transform(received.Response, received.Request); err != nil {
-			return err
-		}
-	}
-
-	file := fmt.Sprintf("testdata/%s.http", t.Name())
-	src, err := Write(received, opt.indentJSON)
-	if err != nil {
-		return err
-	}
+	defer f.Close()
 
 	if opt.body {
-		typ, _, err := mime.ParseMediaType(h2p.Response.Header.Get("Content-Type"))
-		if err != nil {
-			return err
-		}
-		exts, err := mime.ExtensionsByType(typ)
-		if err != nil {
-			return err
-		}
-		sort.Strings(exts)
-		ext := exts[len(exts)-1] // Take the longest.
-		bodyFile := fmt.Sprintf("testdata/%s%s", t.Name(), ext)
-		b, err := io.ReadAll(h2p.Response.Body)
+		ext, err := extFromContentType(h.Response.Header.Get("Content-Type"))
 		if err != nil {
 			return err
 		}
 
-		h2p.Response.Body = io.NopCloser(bytes.NewReader(b))
-		_, err = internal.WriteFile(bodyFile, b, true)
+		path := filepath.Join("testdata", fmt.Sprintf("%s%s", filepath.Join(t.Name(), opt.file), ext))
+		o, err := file.New(path, true)
+		if err != nil {
+			return err
+		}
+		defer o.Close()
+
+		b, err := io.ReadAll(h.Response.Body)
+		if err != nil {
+			return err
+		}
+
+		h.Response.Body = io.NopCloser(bytes.NewReader(b))
+		_, err = o.Write(b)
 		if err != nil {
 			return err
 		}
 	}
 
-	update, _ := strconv.ParseBool(os.Getenv(opt.env))
+	return snapshot.Snapshot(f, opt.encoder(), opt.comparer(), h)
+}
 
-	// Write the received data to the file.
-	written, err := internal.WriteFile(file, src, update)
+func extFromContentType(contentType string) (string, error) {
+	typ, _, err := mime.ParseMediaType(contentType)
 	if err != nil {
-		return err
+		return "", err
 	}
-
-	// First write, there's nothing to compare.
-	if written {
-		return nil
-	}
-
-	// Read the snapshot data from the file.
-	b, err := os.ReadFile(file)
+	exts, err := mime.ExtensionsByType(typ)
 	if err != nil {
-		return err
+		return "", err
 	}
-
-	snapshot, err := Read(b)
-	if err != nil {
-		return err
-	}
-
-	comparer := diff.Text
-	if opt.colors {
-		comparer = diff.ANSI
-	}
-
-	return snapshot.Compare(received, opt.cmpOpt, comparer)
+	sort.Strings(exts)
+	ext := exts[len(exts)-1] // Take the longest.
+	return ext, nil
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/alextanhongpin/testdump/pkg/diff"
 	"github.com/google/go-cmp/cmp"
 	"vitess.io/vitess/go/vt/sqlparser"
 )
@@ -13,20 +14,40 @@ type SQL struct {
 	Args  []any
 }
 
-type CompareOption struct {
-	CmpOpts []cmp.Option
+type comparer struct {
+	opts   []cmp.Option
+	colors bool
+	file   string
 }
 
-type comparer func(a, b any, opts ...cmp.Option) error
+func (c *comparer) Compare(a, b any) error {
+	x := a.(*SQL)
+	y := b.(*SQL)
 
-func (snapshot *SQL) Compare(received *SQL, opt CompareOption, cmp comparer) error {
+	err := c.compare(x, y)
+	if err != nil {
+		if c.file != "" {
+			return fmt.Errorf("%s: %w", c.file, err)
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (c *comparer) compare(snapshot, received *SQL) error {
+	comparer := diff.Text
+	if c.colors {
+		comparer = diff.ANSI
+	}
+
 	ok, err := CompareQuery(snapshot.Query, received.Query)
 	if err != nil {
 		return err
 	}
 
 	if !ok {
-		return fmt.Errorf("Query: %w", cmp(snapshot.Query, received.Query))
+		return fmt.Errorf("Query: %w", comparer(snapshot.Query, received.Query))
 	}
 
 	lhs, err := toMap(snapshot.Args)
@@ -38,7 +59,7 @@ func (snapshot *SQL) Compare(received *SQL, opt CompareOption, cmp comparer) err
 		return err
 	}
 
-	if err := cmp(lhs, rhs, opt.CmpOpts...); err != nil {
+	if err := comparer(lhs, rhs, c.opts...); err != nil {
 		return fmt.Errorf("Args: %w", err)
 	}
 

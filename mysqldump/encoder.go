@@ -16,6 +16,18 @@ const (
 	argsSection  = "args"
 )
 
+type encoder struct {
+	marshalFns []func(*SQL) error
+}
+
+func (e *encoder) Marshal(v any) ([]byte, error) {
+	return Write(v.(*SQL), e.marshalFns...)
+}
+
+func (e *encoder) Unmarshal(b []byte) (a any, err error) {
+	return Read(b)
+}
+
 func Read(b []byte) (*SQL, error) {
 	d := new(SQL)
 
@@ -51,7 +63,7 @@ func Read(b []byte) (*SQL, error) {
 	return d, nil
 }
 
-func Write(sql *SQL, transformers ...Transformer) ([]byte, error) {
+func Write(sql *SQL, transformers ...func(*SQL) error) ([]byte, error) {
 	q, err := normalize(sql.Query)
 	if err != nil {
 		return nil, err

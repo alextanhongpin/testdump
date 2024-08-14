@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/alextanhongpin/testdump/mysqldump"
-	"github.com/alextanhongpin/testdump/pkg/sqlformat"
 )
 
 func TestDump(t *testing.T) {
@@ -27,22 +26,13 @@ func TestIgnoreFields(t *testing.T) {
 }
 
 func TestTransformer(t *testing.T) {
-	prettySQL := func(s *mysqldump.SQL) error {
-		q, err := sqlformat.Format(s.Query)
-		if err != nil {
-			return err
-		}
-		s.Query = q
-		return nil
-	}
-
 	dump := &mysqldump.SQL{
 		Query: `select * from users where name = ? and id = ?`,
 		Args:  []any{"John", 1},
 	}
 
 	// Add pretty print sql for all dumps.
-	md := mysqldump.New(mysqldump.Transformers(prettySQL))
+	md := mysqldump.New(mysqldump.Prettify)
 	md.Dump(t, dump)
 }
 

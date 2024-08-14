@@ -1,6 +1,6 @@
 module github.com/alextanhongpin/testdump/jsondump
 
-go 1.21.10
+go 1.22.5
 
 require (
 	github.com/alextanhongpin/testdump/pkg/cuetest v0.0.0-20240617040714-9d0b95c731bd

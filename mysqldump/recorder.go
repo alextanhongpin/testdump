@@ -20,12 +20,13 @@ type dbtx interface {
 }
 
 // NewRecorder ...
-func NewRecorder(t *testing.T, db dbtx) *Recorder {
+func NewRecorder(t *testing.T, db dbtx, opts ...Option) *Recorder {
 	d := &Recorder{
-		t:    t,
-		db:   db,
-		opts: make(map[int][]Option),
-		seen: make(map[string]int),
+		t:        t,
+		db:       db,
+		opts:     opts,
+		optsByID: make(map[int][]Option),
+		seen:     make(map[string]int),
 	}
 	t.Cleanup(d.dump)
 	return d
@@ -35,12 +36,13 @@ var _ dbtx = (*Recorder)(nil)
 
 // Recorder logs the query and args.
 type Recorder struct {
-	t     *testing.T
-	id    int
-	db    dbtx
-	opts  map[int][]Option
-	seen  map[string]int
-	dumps []*SQL
+	db       dbtx
+	dumps    []*SQL
+	id       int
+	opts     []Option
+	optsByID map[int][]Option
+	seen     map[string]int
+	t        *testing.T
 }
 
 // SetDB sets the db.
@@ -48,35 +50,27 @@ func (r *Recorder) SetDB(db dbtx) {
 	r.db = db
 }
 
-// SetCallOptions sets the options for the id-th call.
-func (r *Recorder) SetOption(id int, opts ...Option) {
-	r.opts[id] = opts
-}
-
-// Options returns the options for the id-th call.
-func (r *Recorder) Options(id int) []Option {
-	return r.opts[id]
+// SetOptionsAt sets the options for the id-th call.
+func (r *Recorder) SetOptionsAt(id int, opts ...Option) {
+	r.optsByID[id] = opts
 }
 
 func (r *Recorder) log(method, query string, args ...any) {
-	defer func() {
-		r.id++
-	}()
-
 	fileName := method
 	r.seen[fileName]++
 	fileName = fmt.Sprintf("%s#%d", fileName, r.seen[fileName])
 
-	r.opts[r.id] = append(r.opts[r.id], File(fileName))
+	r.optsByID[r.id] = append(r.optsByID[r.id], File(fileName))
 	r.dumps = append(r.dumps, &SQL{
 		Args:  args,
 		Query: query,
 	})
+	r.id++
 }
 
 func (r *Recorder) dump() {
 	for i, dump := range r.dumps {
-		Dump(r.t, dump, r.Options(i)...)
+		Dump(r.t, dump, append(r.opts, r.optsByID[i]...)...)
 	}
 }
 
