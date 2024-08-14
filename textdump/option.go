@@ -42,12 +42,14 @@ func (o *options) encoder() *encoder {
 }
 
 func (o *options) comparer() *comparer {
-	return &comparer{colors: o.colors}
+	return &comparer{
+		colors: o.colors,
+	}
 }
 
-func Transformers(t ...func([]byte) ([]byte, error)) Option {
+func Transformers(fns ...func([]byte) ([]byte, error)) Option {
 	return func(o *options) {
-		o.transformers = append(o.transformers, t...)
+		o.transformers = append(o.transformers, fns...)
 	}
 }
 
