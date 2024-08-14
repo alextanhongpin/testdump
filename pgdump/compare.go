@@ -32,9 +32,9 @@ func (c *comparer) Compare(a, b any) error {
 }
 
 func (c *comparer) compare(snapshot, received *SQL) error {
-	cmp := diff.Text
+	comparer := diff.Text
 	if c.colors {
-		cmp = diff.ANSI
+		comparer = diff.ANSI
 	}
 
 	ok, err := CompareQuery(snapshot.Query, received.Query)
@@ -43,7 +43,7 @@ func (c *comparer) compare(snapshot, received *SQL) error {
 	}
 
 	if !ok {
-		return fmt.Errorf("Query: %w", cmp(snapshot.Query, received.Query))
+		return fmt.Errorf("Query: %w", comparer(snapshot.Query, received.Query))
 	}
 
 	lhs, err := toMap(snapshot.Args)
@@ -55,7 +55,7 @@ func (c *comparer) compare(snapshot, received *SQL) error {
 		return err
 	}
 
-	if err := cmp(lhs, rhs, c.opts...); err != nil {
+	if err := comparer(lhs, rhs, c.opts...); err != nil {
 		return fmt.Errorf("Args: %w", err)
 	}
 
