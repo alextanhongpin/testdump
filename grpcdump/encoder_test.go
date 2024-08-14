@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/alextanhongpin/testdump/grpcdump"
-	"github.com/alextanhongpin/testdump/pkg/diff"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 )
@@ -58,7 +57,4 @@ func TestDump(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(g)
-	if err := g.Compare(d, grpcdump.CompareOption{}, diff.ANSI); err != nil {
-		t.Log(err)
-	}
 }

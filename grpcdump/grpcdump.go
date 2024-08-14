@@ -6,9 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"os"
 	"path/filepath"
-	"strconv"
 	"sync"
 	"testing"
 
@@ -18,8 +16,8 @@ import (
 	"google.golang.org/grpc/peer"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
-	"github.com/alextanhongpin/testdump/grpcdump/internal"
-	"github.com/alextanhongpin/testdump/pkg/diff"
+	"github.com/alextanhongpin/testdump/pkg/file"
+	"github.com/alextanhongpin/testdump/pkg/snapshot"
 )
 
 var ErrMetadataNotFound = errors.New("grpcdump: metadata not found")
@@ -70,50 +68,17 @@ func (d *Dumper) Record(t *testing.T, ctx context.Context, opts ...Option) conte
 	return metadata.AppendToOutgoingContext(ctx, grpcdumpTestID, id)
 }
 
-func (d *Dumper) dump(t *testing.T, received *GRPC, opts ...Option) error {
-	opt := newOption(append(d.opts, opts...)...)
+func (d *Dumper) dump(t *testing.T, v *GRPC, opts ...Option) error {
+	opt := newOptions().apply(append(d.opts, opts...)...)
 
-	for _, transform := range opt.transformers {
-		if err := transform(received); err != nil {
-			return err
-		}
-	}
-
-	file := filepath.Join("testdata", fmt.Sprintf("%s.grpc", t.Name()))
-
-	receivedBytes, err := Write(received)
+	path := filepath.Join("testdata", fmt.Sprintf("%s.grpc", t.Name()))
+	f, err := file.New(path, opt.overwrite())
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
-	overwrite, _ := strconv.ParseBool(os.Getenv(opt.env))
-	written, err := internal.WriteFile(file, receivedBytes, overwrite)
-	if err != nil {
-		return err
-	}
-
-	// First write, there's nothing to compare.
-	if written {
-		return nil
-	}
-
-	// Read the snapshot data from the file.
-	b, err := os.ReadFile(file)
-	if err != nil {
-		return err
-	}
-
-	snapshot, err := Read(b)
-	if err != nil {
-		return err
-	}
-
-	comparer := diff.Text
-	if opt.colors {
-		comparer = diff.ANSI
-	}
-
-	return snapshot.Compare(received, opt.cmpOpt, comparer)
+	return snapshot.Snapshot(f, opt.encoder(), opt.comparer(), v)
 }
 
 // NewRecorder is a function that creates a new recorder for gRPC calls.
