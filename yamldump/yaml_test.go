@@ -83,27 +83,6 @@ func TestIgnorePaths(t *testing.T) {
 	)
 }
 
-func TestIgnoreFromStructTag(t *testing.T) {
-	type Banner struct {
-		ExpiresIn time.Time `json:"expiresIn" cmp:"-"`
-	}
-	type MultiBanner struct {
-		Banner1 Banner `json:"banner1"`
-		Banner2 Banner `json:"banner2"`
-	}
-
-	banner := MultiBanner{
-		Banner1: Banner{
-			ExpiresIn: time.Now().Add(1 * time.Hour),
-		},
-		Banner2: Banner{
-			ExpiresIn: time.Now().Add(1 * time.Hour),
-		},
-	}
-
-	yamldump.Dump(t, banner, yamldump.IgnorePathsFromStructTag("cmp", "-"))
-}
-
 func TestMaskFields(t *testing.T) {
 	type Account struct {
 		Type  string `json:"type"`
@@ -131,42 +110,17 @@ func TestMaskFields(t *testing.T) {
 	yamldump.Dump(t, accounts, m.MaskFields("email"))
 }
 
-func TestMaskFieldsFromStructTag(t *testing.T) {
-	type Account struct {
-		Type  string `json:"type"`
-		Email string `json:"email" mask:"true"`
-	}
-
-	type Accounts struct {
-		Email  Account `json:"email"`
-		Google Account `json:"google"`
-	}
-
-	accounts := Accounts{
-		Email: Account{
-			Type:  "email",
-			Email: "john.appleseed@mail.com",
-		},
-		Google: Account{
-			Type:  "google",
-			Email: "john.appleseed@gmail.com",
-		},
-	}
-
-	yamldump.Dump(t, accounts, yamldump.MaskPathsFromStructTag("mask", "true", "[REDACTED]"))
-}
-
 func TestNew(t *testing.T) {
 	type User struct {
-		Password  string    `json:"password" mask:"true"`
-		CreatedAt time.Time `json:"createdAt" cmp:"-"`
+		Password  string    `json:"password"`
+		CreatedAt time.Time `json:"createdAt"`
 	}
 
-	jd := yamldump.New(
-		yamldump.IgnorePathsFromStructTag("cmp", "-"),
-		yamldump.MaskPathsFromStructTag("mask", "true", "[REDACTED]"),
+	yd := yamldump.New(
+		yamldump.IgnorePaths("$.createdAt"),
+		yamldump.MaskPaths("[REDACTED]", []string{"$.password"}),
 	)
-	jd.Dump(t, User{
+	yd.Dump(t, User{
 		Password:  "password",
 		CreatedAt: time.Now(), // Dynamic value
 	})
@@ -200,7 +154,7 @@ func TestMaskPaths(t *testing.T) {
 func TestCustomTransformer(t *testing.T) {
 	yamldump.Dump(t, map[string]any{
 		"name": "John",
-	}, yamldump.Transformer(func(b []byte) ([]byte, error) {
+	}, yamldump.Transformers(func(b []byte) ([]byte, error) {
 		return bytes.ToUpper(b), nil
 	}))
 }
@@ -208,7 +162,7 @@ func TestCustomTransformer(t *testing.T) {
 func TestMultipleTransformers(t *testing.T) {
 	yamldump.Dump(t, map[string]any{
 		"name": "John",
-	}, yamldump.Transformer(
+	}, yamldump.Transformers(
 		func(b []byte) ([]byte, error) {
 			return bytes.ToLower(b), nil
 		},
@@ -232,4 +186,19 @@ func TestCustomName(t *testing.T) {
 
 	yamldump.Dump(t, john, yamldump.File("john"))
 	yamldump.Dump(t, jane, yamldump.File("jane"))
+}
+
+func TestRegistry(t *testing.T) {
+	type Foo struct {
+		CreatedAt time.Time
+	}
+	type Bar struct {
+		UpdatedAt time.Time
+	}
+	reg := yamldump.NewRegistry()
+	reg.Register(&Foo{}, yamldump.IgnoreFields("CreatedAt"))
+	reg.Register(Bar{}, yamldump.IgnoreFields("UpdatedAt"))
+
+	yamldump.Dump(t, Foo{CreatedAt: time.Now()}, yamldump.WithRegistry(reg))
+	yamldump.Dump(t, &Bar{UpdatedAt: time.Now()}, yamldump.WithRegistry(reg))
 }

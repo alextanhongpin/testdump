@@ -1,6 +1,9 @@
 package yamldump
 
 import (
+	"os"
+	"strconv"
+
 	"github.com/alextanhongpin/testdump/yamldump/internal"
 	"github.com/google/go-cmp/cmp"
 )
@@ -8,109 +11,128 @@ import (
 // Define a constant for ignored values
 const (
 	ignoreValue = "[IGNORED]"
+	env         = "TESTDUMP"
 )
 
-// Define a function type Option that takes a pointer to an option struct
-type Option func(o *option)
+// Define a function type Option that takes a pointer to an options struct
+type Option func(o *options)
 
-// Define the option struct with various fields
-type option struct {
-	file                    string // A custom file name.
-	env                     string // The environment variable name to overwrite the snapsnot.
+// Define the options struct with various fields
+type options struct {
 	cmpOpts                 []cmp.Option
-	transformers            []func([]byte) ([]byte, error)
-	ignorePathsTransformers []func([]byte) ([]byte, error)
 	colors                  bool
-	typ                     any
+	env                     string // The environment variable name to overwrite the snapsnot.
+	file                    string // A custom file name.
+	ignorePathsTransformers []func([]byte) ([]byte, error)
+	rawOutput               bool
+	registry                *Registry
+	transformers            []func([]byte) ([]byte, error)
 }
 
-// newOption is a constructor for the option struct
-func newOption(a any, opts ...Option) *option {
-	opt := new(option)
-	opt.colors = true
-	opt.typ = a
-
-	// Apply each Option function to the new option
-	for _, o := range opts {
-		o(opt)
-	}
-
-	return opt
-}
-
-// MaskPathsFromStructTag is an Option that masks paths from a struct tag
-func MaskPathsFromStructTag(key, val, maskValue string) Option {
-	return func(o *option) {
-		maskPaths := internal.MaskPathsFromStructTag(o.typ, key, val)
-		o.transformers = append(o.transformers, internal.MaskPaths(maskValue, maskPaths))
+// newOptions is a constructor for the options struct
+func newOptions() *options {
+	return &options{
+		colors:    true,
+		env:       env,
+		rawOutput: true,
 	}
 }
 
-// IgnorePathsFromStructTag is an Option that ignores paths from a struct tag
-func IgnorePathsFromStructTag(key, val string) Option {
-	return func(o *option) {
-		maskPaths := internal.IgnorePathsFromStructTag(o.typ, key, val)
-		o.ignorePathsTransformers = append(o.ignorePathsTransformers, internal.MaskPaths(ignoreValue, maskPaths))
+func (o *options) apply(opts ...Option) *options {
+	for _, opt := range opts {
+		opt(o)
+	}
+	return o
+}
+
+func (o *options) overwrite() bool {
+	t, _ := strconv.ParseBool(os.Getenv(o.env))
+	return t
+}
+
+func (o *options) encoder() *encoder {
+	return &encoder{
+		marshalFns:   o.transformers,
+		unmarshalFns: o.ignorePathsTransformers,
+	}
+}
+
+func (o *options) comparer() *comparer {
+	return &comparer{
+		opts:   o.cmpOpts,
+		colors: o.colors,
 	}
 }
 
 // File is an Option that sets the file name
 func File(name string) Option {
-	return func(o *option) {
+	return func(o *options) {
 		o.file = name
 	}
 }
 
 // Env is an Option that sets the environment variable name
 func Env(name string) Option {
-	return func(o *option) {
+	return func(o *options) {
 		o.env = name
 	}
 }
 
 // Colors is an Option that sets the colors flag
 func Colors(colors bool) Option {
-	return func(o *option) {
+	return func(o *options) {
 		o.colors = colors
 	}
 }
 
-// Transformer is an Option that adds a transformer function
-func Transformer(p ...func([]byte) ([]byte, error)) Option {
-	return func(o *option) {
-		o.transformers = append(o.transformers, p...)
+// Transformers is an Option that adds a transformer function
+func Transformers(fns ...func([]byte) ([]byte, error)) Option {
+	return func(o *options) {
+		o.transformers = append(o.transformers, fns...)
 	}
 }
 
 // CmpOpts is an Option that adds comparison options
 func CmpOpts(opts ...cmp.Option) Option {
-	return func(o *option) {
+	return func(o *options) {
 		o.cmpOpts = append(o.cmpOpts, opts...)
 	}
 }
 
 // IgnoreFields is an Option that ignores certain fields
 func IgnoreFields(fields ...string) Option {
-	return func(o *option) {
+	return func(o *options) {
 		o.cmpOpts = append(o.cmpOpts, internal.IgnoreMapEntries(fields...))
 	}
 }
 
 // IgnorePaths is an Option that ignores certain paths
 func IgnorePaths(paths ...string) Option {
-	return func(o *option) {
+	return func(o *options) {
 		o.ignorePathsTransformers = append(o.ignorePathsTransformers, internal.MaskPaths(ignoreValue, paths))
 	}
 }
 
 // MaskFields is an Option that masks certain fields
 func MaskFields(mask string, fields []string) Option {
-	return Transformer(internal.MaskFields(mask, fields))
+	return Transformers(internal.MaskFields(mask, fields))
 }
 
 // MaskPaths is an Option that masks certain paths
 func MaskPaths(mask string, paths []string) Option {
-	return Transformer(internal.MaskPaths(mask, paths))
+	return Transformers(internal.MaskPaths(mask, paths))
+}
+
+func RawOutput(raw bool) Option {
+	return func(o *options) {
+		o.rawOutput = raw
+	}
+}
+
+func WithRegistry(reg *Registry) Option {
+	return func(o *options) {
+		o.registry = reg
+	}
 }
 
 // Define a struct for a Masker

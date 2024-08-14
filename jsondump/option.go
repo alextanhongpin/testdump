@@ -22,16 +22,19 @@ type options struct {
 	cmpOpts                 []cmp.Option
 	colors                  bool
 	env                     string // The environment variable name to overwrite the snapsnot.
+	file                    string // A custom file name.
 	ignorePathsTransformers []func([]byte) ([]byte, error)
 	rawOutput               bool
 	registry                *Registry
 	transformers            []func([]byte) ([]byte, error)
-	file                    string // A custom file name.
 }
 
-func (o *options) overwrite() bool {
-	t, _ := strconv.ParseBool(os.Getenv(o.env))
-	return t
+func newOptions() *options {
+	return &options{
+		colors:    true,
+		env:       env,
+		rawOutput: true,
+	}
 }
 
 func (o *options) apply(opts ...Option) *options {
@@ -40,6 +43,11 @@ func (o *options) apply(opts ...Option) *options {
 	}
 
 	return o
+}
+
+func (o *options) overwrite() bool {
+	t, _ := strconv.ParseBool(os.Getenv(o.env))
+	return t
 }
 
 func (o *options) encoder() *encoder {
@@ -53,14 +61,6 @@ func (o *options) comparer() *comparer {
 	return &comparer{
 		opts:   o.cmpOpts,
 		colors: o.colors,
-	}
-}
-
-func newOptions() *options {
-	return &options{
-		colors:    true,
-		env:       env,
-		rawOutput: true,
 	}
 }
 
