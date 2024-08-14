@@ -2,14 +2,17 @@ package jsondump
 
 import (
 	"bytes"
+	gocmp "cmp"
 	"encoding/json"
-	"io"
+	"fmt"
+	"path/filepath"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/alextanhongpin/testdump/jsondump/internal"
 	"github.com/alextanhongpin/testdump/pkg/diff"
+	"github.com/alextanhongpin/testdump/pkg/file"
 	"github.com/alextanhongpin/testdump/pkg/snapshot"
 )
 
@@ -37,51 +40,46 @@ func (d *Dumper) Dump(t *testing.T, v any, opts ...Option) {
 	t.Helper()
 
 	opts = append(d.opts, opts...)
-
-	opt := newOptions().apply(opts...)
-	if opt.registry != nil {
-		opt.apply(opt.registry.Get(v)...)
-	}
-
-	f, err := opt.newReadWriteCloser(t.Name(), internal.TypeName(v))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer f.Close()
-
-	var o io.ReadWriteCloser
-	if opt.rawOutput {
-		o, err = opt.newOutput(t.Name(), internal.TypeName(v))
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer o.Close()
-	}
-
-	if err := Snapshot(f, o, v, opts...); err != nil {
+	if err := dump(t, v, opts...); err != nil {
 		t.Error(err)
 	}
 }
 
-func Snapshot(rw io.ReadWriter, out io.Writer, v any, opts ...Option) error {
+func dump(t *testing.T, v any, opts ...Option) error {
 	opt := newOptions().apply(opts...)
 	if opt.registry != nil {
 		opt.apply(opt.registry.Get(v)...)
 	}
 
+	name := gocmp.Or(opt.file, internal.TypeName(v))
+	path := filepath.Join("testdata", t.Name(), fmt.Sprintf("%s.json", name))
+	f, err := file.New(path, opt.overwrite())
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
 	if opt.rawOutput {
+		path := filepath.Join("testdata", t.Name(), fmt.Sprintf("%s.out", name))
+		o, err := file.New(path, true)
+		if err != nil {
+			return err
+		}
+		defer o.Close()
+
 		b, err := json.MarshalIndent(v, "", "  ")
 		if err != nil {
 			return err
 		}
 
-		_, err = out.Write(b)
+		_, err = o.Write(b)
 		if err != nil {
 			return err
 		}
 	}
 
-	return snapshot.Snapshot(rw, opt.encoder(), opt.comparer(), v)
+	return snapshot.Snapshot(f, opt.encoder(), opt.comparer(), v)
 }
 
 type encoder struct {
@@ -123,22 +121,17 @@ func (e *encoder) Unmarshal(b []byte) (a any, err error) {
 }
 
 type comparer struct {
-	colors  bool
-	cmpOpts []cmp.Option
+	colors bool
+	opts   []cmp.Option
 }
 
 func (c *comparer) Compare(a, b any) error {
-
-	// Since google's cmp does not have an option to ignore paths, we just mask
-	// the values before comparing.
-	// The masked values will not be written to the file.
-
 	comparer := diff.Text
 	if c.colors {
 		comparer = diff.ANSI
 	}
 
-	return comparer(a, b, c.cmpOpts...)
+	return comparer(a, b, c.opts...)
 }
 
 func indent(b []byte) ([]byte, error) {

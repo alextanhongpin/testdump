@@ -1,21 +1,17 @@
 package jsondump
 
 import (
-	gocmp "cmp"
-	"fmt"
-	"io"
 	"os"
-	"path/filepath"
 	"strconv"
 
 	"github.com/alextanhongpin/testdump/jsondump/internal"
-	"github.com/alextanhongpin/testdump/pkg/file"
 	"github.com/google/go-cmp/cmp"
 )
 
 // Define a constant for ignored values
 const (
 	ignoreValue = "[IGNORED]"
+	env         = "TESTDUMP"
 )
 
 // Define a function type Option that takes a pointer to an options struct
@@ -55,27 +51,15 @@ func (o *options) encoder() *encoder {
 
 func (o *options) comparer() *comparer {
 	return &comparer{
-		cmpOpts: o.cmpOpts,
-		colors:  o.colors,
+		opts:   o.cmpOpts,
+		colors: o.colors,
 	}
-}
-
-func (o *options) newReadWriteCloser(dir, name string) (io.ReadWriteCloser, error) {
-	path := filepath.Join("testdata", dir, fmt.Sprintf("%s.json", gocmp.Or(o.file, name)))
-
-	return file.New(path, o.overwrite())
-}
-
-func (o *options) newOutput(dir, name string) (io.ReadWriteCloser, error) {
-	path := filepath.Join("testdata", dir, fmt.Sprintf("%s.out", gocmp.Or(o.file, name)))
-
-	return file.New(path, true)
 }
 
 func newOptions() *options {
 	return &options{
 		colors:    true,
-		env:       "TESTDUMP",
+		env:       env,
 		rawOutput: true,
 	}
 }
