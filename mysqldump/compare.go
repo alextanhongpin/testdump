@@ -29,7 +29,9 @@ func (c *comparer) Compare(a, b any) error {
 		if c.file != "" {
 			return fmt.Errorf("%s: %w", c.file, err)
 		}
+		return err
 	}
+
 	return nil
 }
 
