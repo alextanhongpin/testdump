@@ -1,10 +1,12 @@
 module github.com/alextanhongpin/testdump/yamldump
 
-go 1.22.4
+go 1.22.5
 
 require (
 	github.com/alextanhongpin/testdump/pkg/diff v0.0.0-20240617113601-585c236115fd
+	github.com/alextanhongpin/testdump/pkg/file v0.0.0-20240814172502-38533f751ca6
 	github.com/alextanhongpin/testdump/pkg/reviver v0.0.0-20240617113601-585c236115fd
+	github.com/alextanhongpin/testdump/pkg/snapshot v0.0.0-20240814172502-38533f751ca6
 	github.com/google/go-cmp v0.6.0
 	gopkg.in/yaml.v3 v3.0.1
 )

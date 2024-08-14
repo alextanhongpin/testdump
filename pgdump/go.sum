@@ -2,6 +2,10 @@ github.com/DATA-DOG/go-sqlmock v1.5.0 h1:Shsta01QNfFxHCfpW6YH2STWB0MudeXXEWMr20O
 github.com/DATA-DOG/go-sqlmock v1.5.0/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
 github.com/alextanhongpin/testdump/pkg/diff v0.0.0-20240617032328-5cdd37fc0156 h1:F4Vk9uRhSWbkQKrV78gioqjufW/acun1llGnJbz1ujo=
 github.com/alextanhongpin/testdump/pkg/diff v0.0.0-20240617032328-5cdd37fc0156/go.mod h1:G2g+ua+3rXatKhXe8pvP7QopFCVJ/y+0hGuqIEZ4Pio=
+github.com/alextanhongpin/testdump/pkg/file v0.0.0-20240814172502-38533f751ca6 h1:O46wyM61qBtfJhCT5h2YkOvfwxpynQFwg+9tdmQyMrw=
+github.com/alextanhongpin/testdump/pkg/file v0.0.0-20240814172502-38533f751ca6/go.mod h1:VjrYSZIWcWhyJI/JFn1zKDMvPCkZz9u3hJrm/qREZE8=
+github.com/alextanhongpin/testdump/pkg/snapshot v0.0.0-20240814172502-38533f751ca6 h1:nudwX51KiCWg0XO6LUUNpNczFN/dkdQu3sSYqhBYV9A=
+github.com/alextanhongpin/testdump/pkg/snapshot v0.0.0-20240814172502-38533f751ca6/go.mod h1:KE5TrgWzFr7ZsmCqtN2p8GHSuJygE0bdep/QcZ1/di0=
 github.com/alextanhongpin/testdump/pkg/sqlformat v0.0.0-20240617040756-3318bf024e3c h1:hPsI9GyGzQVeMItCqd8/cQ3YpL4tKMgPwZRzB6IM/yI=
 github.com/alextanhongpin/testdump/pkg/sqlformat v0.0.0-20240617040756-3318bf024e3c/go.mod h1:i9qdznNXpq9uLz3Eh9tkgrYP2U3hOGA9wtFvi4LplK8=
 github.com/golang/protobuf v1.4.0-rc.1/go.mod h1:ceaxUfeHdC40wWswd/P6IGgMaK3YpKi5j83Wpe3EHw8=

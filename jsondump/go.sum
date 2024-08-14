@@ -6,8 +6,12 @@ github.com/alextanhongpin/testdump/pkg/cuetest v0.0.0-20240617040714-9d0b95c731b
 github.com/alextanhongpin/testdump/pkg/cuetest v0.0.0-20240617040714-9d0b95c731bd/go.mod h1:jpCvETSgxhWmAuVMQGT7SXLlZEDEYXmP1FYEu/7vrbk=
 github.com/alextanhongpin/testdump/pkg/diff v0.0.0-20240617032328-5cdd37fc0156 h1:F4Vk9uRhSWbkQKrV78gioqjufW/acun1llGnJbz1ujo=
 github.com/alextanhongpin/testdump/pkg/diff v0.0.0-20240617032328-5cdd37fc0156/go.mod h1:G2g+ua+3rXatKhXe8pvP7QopFCVJ/y+0hGuqIEZ4Pio=
+github.com/alextanhongpin/testdump/pkg/file v0.0.0-20240814172502-38533f751ca6 h1:O46wyM61qBtfJhCT5h2YkOvfwxpynQFwg+9tdmQyMrw=
+github.com/alextanhongpin/testdump/pkg/file v0.0.0-20240814172502-38533f751ca6/go.mod h1:VjrYSZIWcWhyJI/JFn1zKDMvPCkZz9u3hJrm/qREZE8=
 github.com/alextanhongpin/testdump/pkg/reviver v0.0.0-20240617032328-5cdd37fc0156 h1:M+cGsyJBVGMkl6OE7w8C94OtZuQYUPvPABCzD3/rV80=
 github.com/alextanhongpin/testdump/pkg/reviver v0.0.0-20240617032328-5cdd37fc0156/go.mod h1:lAUgUptynW4bE3EIEFSpX4MZhJqxvy7AEW6eBQb71hY=
+github.com/alextanhongpin/testdump/pkg/snapshot v0.0.0-20240814172502-38533f751ca6 h1:nudwX51KiCWg0XO6LUUNpNczFN/dkdQu3sSYqhBYV9A=
+github.com/alextanhongpin/testdump/pkg/snapshot v0.0.0-20240814172502-38533f751ca6/go.mod h1:KE5TrgWzFr7ZsmCqtN2p8GHSuJygE0bdep/QcZ1/di0=
 github.com/cockroachdb/apd/v3 v3.2.1 h1:U+8j7t0axsIgvQUqthuNm82HIrYXodOV2iWLWtEaIwg=
 github.com/cockroachdb/apd/v3 v3.2.1/go.mod h1:klXJcjp+FffLTHlhIG69tezTDvdP065naDsHzKhYSqc=
 github.com/emicklei/proto v1.10.0 h1:pDGyFRVV5RvV+nkBK9iy3q67FBy9Xa7vwrOTE+g5aGw=
