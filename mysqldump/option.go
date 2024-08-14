@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/alextanhongpin/testdump/mysqldump/internal"
+	"github.com/alextanhongpin/testdump/pkg/sqlformat"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -81,3 +82,12 @@ func Transformers(ts ...func(*SQL) error) Option {
 		o.transformers = append(o.transformers, ts...)
 	}
 }
+
+var Prettify = Transformers(func(s *SQL) error {
+	q, err := sqlformat.Format(s.Query)
+	if err != nil {
+		return err
+	}
+	s.Query = q
+	return nil
+})

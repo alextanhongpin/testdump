@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/alextanhongpin/testdump/pgdump"
-	"github.com/alextanhongpin/testdump/pkg/sqlformat"
 )
 
 func TestDump(t *testing.T) {
@@ -27,22 +26,13 @@ func TestIgnoreFields(t *testing.T) {
 }
 
 func TestTransformer(t *testing.T) {
-	prettySQL := func(s *pgdump.SQL) error {
-		q, err := sqlformat.Format(s.Query)
-		if err != nil {
-			return err
-		}
-		s.Query = q
-		return nil
-	}
-
 	dump := &pgdump.SQL{
 		Query: `select * from users where name = $1 and id = $2`,
 		Args:  []any{"John", 1},
 	}
 
 	// Add pretty print sql for all dumps.
-	pd := pgdump.New(pgdump.Transformers(prettySQL))
+	pd := pgdump.New(pgdump.Prettify)
 	pd.Dump(t, dump)
 }
 
