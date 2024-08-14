@@ -119,7 +119,7 @@ func TestNew(t *testing.T) {
 
 	jd := jsondump.New(
 		jsondump.IgnorePaths("$.createdAt"),
-		jsondump.MaskPaths("[REDACTED]", []string{"password"}),
+		jsondump.MaskPaths("[REDACTED]", []string{"$.password"}),
 	)
 	jd.Dump(t, User{
 		Password:  "password",
