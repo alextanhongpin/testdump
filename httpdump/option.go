@@ -1,14 +1,10 @@
 package httpdump
 
 import (
-	"fmt"
-	"io"
 	"os"
-	"path/filepath"
 	"strconv"
 
 	"github.com/alextanhongpin/testdump/httpdump/internal"
-	"github.com/alextanhongpin/testdump/pkg/file"
 )
 
 type options struct {
@@ -56,18 +52,6 @@ func (o *options) comparer() *comparer {
 		cmpOpt: o.cmpOpt,
 		colors: o.colors,
 	}
-}
-
-func (o *options) newReadWriteCloser(name string) (io.ReadWriteCloser, error) {
-	path := filepath.Join("testdata", fmt.Sprintf("%s.http", filepath.Join(name, o.file)))
-
-	return file.New(path, o.overwrite())
-}
-
-func (o *options) newOutput(name, ext string) (io.ReadWriteCloser, error) {
-	path := filepath.Join("testdata", fmt.Sprintf("%s%s", filepath.Join(name, o.file), ext))
-
-	return file.New(path, true)
 }
 
 // Option is a type that defines a function that takes an options instance and modifies it.

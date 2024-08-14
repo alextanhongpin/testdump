@@ -9,6 +9,31 @@ import (
 	"golang.org/x/tools/txtar"
 )
 
+type encoder struct {
+	marshalFns []Transformer
+	indentJSON bool
+}
+
+func (e *encoder) Marshal(v any) ([]byte, error) {
+	h := v.(*HTTP)
+	hc, err := h.Clone()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, fn := range e.marshalFns {
+		if err := fn(hc.Response, hc.Request); err != nil {
+			return nil, err
+		}
+	}
+
+	return Write(hc, e.indentJSON)
+}
+
+func (e *encoder) Unmarshal(b []byte) (any, error) {
+	return Read(b)
+}
+
 // Write writes the request/response pair to bytes.
 func Write(h *HTTP, pretty bool) ([]byte, error) {
 	// Format the JSON body.

@@ -2,15 +2,17 @@ package httpdump
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"mime"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"sort"
 	"testing"
 
 	"github.com/alextanhongpin/testdump/httpdump/internal"
-	"github.com/alextanhongpin/testdump/pkg/diff"
+	"github.com/alextanhongpin/testdump/pkg/file"
 	"github.com/alextanhongpin/testdump/pkg/snapshot"
 )
 
@@ -79,28 +81,7 @@ func (d *Dumper) Dump(t *testing.T, w *http.Response, r *http.Request, opts ...O
 	t.Helper()
 
 	opts = append(d.opts, opts...)
-
-	opt := newOptions().apply(opts...)
-	f, err := opt.newReadWriteCloser(t.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer f.Close()
-
-	var o io.ReadWriteCloser
-	if opt.body {
-		ext, err := extFromContentType(w.Header.Get("Content-Type"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		o, err = opt.newOutput(t.Name(), ext)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer o.Close()
-	}
-
-	if err := Snapshot(f, o, &HTTP{Request: r, Response: w}, opts...); err != nil {
+	if err := dump(t, &HTTP{Request: r, Response: w}, opts...); err != nil {
 		t.Error(err)
 	}
 }
@@ -132,39 +113,40 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	h.h.ServeHTTP(wr, rc)
 
-	opt := newOptions().apply(h.opts...)
-	f, err := opt.newReadWriteCloser(t.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer f.Close()
-
-	var o io.ReadWriteCloser
-	if opt.body {
-		ext, err := extFromContentType(wr.Result().Header.Get("Content-Type"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		o, err = opt.newOutput(t.Name(), ext)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer o.Close()
-	}
-
 	// Dump the request and response to the file.
-	if err := Snapshot(f, o, &HTTP{Response: wr.Result(), Request: r}, h.opts...); err != nil {
-		t.Fatal(err)
+	if err := dump(t, &HTTP{Response: wr.Result(), Request: r}, h.opts...); err != nil {
+		t.Error(err)
 	}
 }
 
-// Snapshot is a function that takes a testing object, an HTTP instance, and a variadic list of options.
-// It clones the HTTP instance, applies the transformers to the cloned instance, writes the cloned instance to a file,
-// reads the snapshot data from the file, and then compares the snapshot data with the cloned instance.
-func Snapshot(rw io.ReadWriter, o io.Writer, h *HTTP, opts ...Option) error {
+// dump is a function that takes a testing object, an HTTP instance, and a
+// variadic list of options.
+// It clones the HTTP instance, applies the transformers to the cloned
+// instance, writes the cloned instance to a file, reads the snapshot data from
+// the file, and then compares the snapshot data with the cloned instance.
+func dump(t *testing.T, h *HTTP, opts ...Option) error {
 	opt := newOptions().apply(opts...)
 
+	path := filepath.Join("testdata", fmt.Sprintf("%s.http", filepath.Join(t.Name(), opt.file)))
+	f, err := file.New(path, opt.overwrite())
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
 	if opt.body {
+		ext, err := extFromContentType(h.Response.Header.Get("Content-Type"))
+		if err != nil {
+			return err
+		}
+
+		path := filepath.Join("testdata", fmt.Sprintf("%s%s", filepath.Join(t.Name(), opt.file), ext))
+		o, err := file.New(path, true)
+		if err != nil {
+			return err
+		}
+		defer o.Close()
+
 		b, err := io.ReadAll(h.Response.Body)
 		if err != nil {
 			return err
@@ -177,49 +159,7 @@ func Snapshot(rw io.ReadWriter, o io.Writer, h *HTTP, opts ...Option) error {
 		}
 	}
 
-	return snapshot.Snapshot(rw, opt.encoder(), opt.comparer(), h)
-}
-
-type encoder struct {
-	marshalFns []Transformer
-	indentJSON bool
-}
-
-func (e *encoder) Marshal(v any) ([]byte, error) {
-	h := v.(*HTTP)
-	hc, err := h.Clone()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, fn := range e.marshalFns {
-		if err := fn(hc.Response, hc.Request); err != nil {
-			return nil, err
-		}
-	}
-
-	return Write(hc, e.indentJSON)
-}
-
-func (e *encoder) Unmarshal(b []byte) (any, error) {
-	return Read(b)
-}
-
-type comparer struct {
-	colors bool
-	cmpOpt CompareOption
-}
-
-func (c *comparer) Compare(a, b any) error {
-	x := a.(*HTTP)
-	y := b.(*HTTP)
-
-	comparer := diff.Text
-	if c.colors {
-		comparer = diff.ANSI
-	}
-
-	return x.Compare(y, c.cmpOpt, comparer)
+	return snapshot.Snapshot(f, opt.encoder(), opt.comparer(), h)
 }
 
 func extFromContentType(contentType string) (string, error) {
