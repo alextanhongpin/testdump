@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/rogpeppe/go-internal/txtar"
+	"golang.org/x/tools/txtar"
 	"google.golang.org/grpc/metadata"
 )
 
