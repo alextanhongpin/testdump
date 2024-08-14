@@ -25,7 +25,6 @@ type options struct {
 	file                    string // A custom file name.
 	ignorePathsTransformers []func([]byte) ([]byte, error)
 	rawOutput               bool
-	registry                *Registry
 	transformers            []func([]byte) ([]byte, error)
 }
 
@@ -126,12 +125,6 @@ func MaskPaths(mask string, paths []string) Option {
 func RawOutput(raw bool) Option {
 	return func(o *options) {
 		o.rawOutput = raw
-	}
-}
-
-func WithRegistry(reg *Registry) Option {
-	return func(o *options) {
-		o.registry = reg
 	}
 }
 

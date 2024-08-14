@@ -195,10 +195,11 @@ func TestRegistry(t *testing.T) {
 	type Bar struct {
 		UpdatedAt time.Time
 	}
-	reg := yamldump.NewRegistry()
-	reg.Register(&Foo{}, yamldump.IgnoreFields("CreatedAt"))
-	reg.Register(Bar{}, yamldump.IgnoreFields("UpdatedAt"))
 
-	yamldump.Dump(t, Foo{CreatedAt: time.Now()}, yamldump.WithRegistry(reg))
-	yamldump.Dump(t, &Bar{UpdatedAt: time.Now()}, yamldump.WithRegistry(reg))
+	yd := yamldump.New()
+	yd.Register(&Foo{}, yamldump.IgnoreFields("CreatedAt"))
+	yd.Register(Bar{}, yamldump.IgnoreFields("UpdatedAt"))
+
+	yd.Dump(t, Foo{CreatedAt: time.Now()})
+	yd.Dump(t, &Bar{UpdatedAt: time.Now()})
 }
