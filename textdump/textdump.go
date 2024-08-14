@@ -17,11 +17,11 @@ func init() {
 }
 
 type Dumper struct {
-	opt []Option
+	opts []Option
 }
 
 func New(opts ...Option) *Dumper {
-	return &Dumper{opt: opts}
+	return &Dumper{opts: opts}
 }
 
 func Dump(t *testing.T, b []byte, opts ...Option) {
@@ -31,7 +31,7 @@ func Dump(t *testing.T, b []byte, opts ...Option) {
 func (d *Dumper) Dump(t *testing.T, b []byte, opts ...Option) {
 	t.Helper()
 
-	opt := newOptions().apply(append(d.opt, opts...)...)
+	opt := newOptions().apply(append(d.opts, opts...)...)
 
 	path := filepath.Join("testdata", fmt.Sprintf("%s.txt", filepath.Join(t.Name(), opt.file)))
 	f, err := file.New(path, opt.overwrite())
