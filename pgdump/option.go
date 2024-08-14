@@ -1,18 +1,17 @@
 package pgdump
 
 import (
-	"fmt"
-	"io"
 	"os"
-	"path/filepath"
 	"strconv"
 
 	"github.com/alextanhongpin/testdump/pgdump/internal"
-	"github.com/alextanhongpin/testdump/pkg/file"
+	"github.com/google/go-cmp/cmp"
 )
 
+const env = "TESTDUMP"
+
 type options struct {
-	cmpOpt       CompareOption
+	cmpOpts      []cmp.Option
 	colors       bool
 	env          string
 	file         string
@@ -22,7 +21,7 @@ type options struct {
 func newOptions() *options {
 	return &options{
 		colors: true,
-		env:    "TESTDUMP",
+		env:    env,
 	}
 }
 
@@ -44,14 +43,9 @@ func (o *options) encoder() *encoder {
 	}
 }
 
-func (o *options) newReadWriteCloser(name string) (io.ReadWriteCloser, error) {
-	path := filepath.Join("testdata", fmt.Sprintf("%s.sql", filepath.Join(name, o.file)))
-	return file.New(path, o.overwrite())
-}
-
 func (o *options) comparer() *comparer {
 	return &comparer{
-		cmpOpt: o.cmpOpt,
+		opts:   o.cmpOpts,
 		colors: o.colors,
 	}
 }
@@ -78,7 +72,7 @@ func Colors(colors bool) Option {
 
 func IgnoreArgs(args ...string) Option {
 	return func(o *options) {
-		o.cmpOpt.CmpOpts = append(o.cmpOpt.CmpOpts, internal.IgnoreMapEntries(args...))
+		o.cmpOpts = append(o.cmpOpts, internal.IgnoreMapEntries(args...))
 	}
 }
 

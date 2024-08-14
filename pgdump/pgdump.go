@@ -2,10 +2,10 @@ package pgdump
 
 import (
 	"fmt"
-	"io"
+	"path/filepath"
 	"testing"
 
-	"github.com/alextanhongpin/testdump/pkg/diff"
+	"github.com/alextanhongpin/testdump/pkg/file"
 	"github.com/alextanhongpin/testdump/pkg/snapshot"
 )
 
@@ -15,8 +15,8 @@ func init() {
 	d = New()
 }
 
-func Dump(t *testing.T, received *SQL, opts ...Option) {
-	d.Dump(t, received, opts...)
+func Dump(t *testing.T, s *SQL, opts ...Option) {
+	d.Dump(t, s, opts...)
 }
 
 type Dumper struct {
@@ -29,63 +29,24 @@ func New(opts ...Option) *Dumper {
 	}
 }
 
-func (d *Dumper) Dump(t *testing.T, received *SQL, opts ...Option) {
+func (d *Dumper) Dump(t *testing.T, s *SQL, opts ...Option) {
 	t.Helper()
 
 	opts = append(d.opts, opts...)
-
-	opt := newOptions().apply(opts...)
-	rwc, err := opt.newReadWriteCloser(t.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer rwc.Close()
-
-	if err := Snapshot(rwc, received, opts...); err != nil {
+	if err := dump(t, s, opts...); err != nil {
 		t.Error(err)
 	}
 }
 
-func Snapshot(rw io.ReadWriter, s *SQL, opts ...Option) error {
+func dump(t *testing.T, s *SQL, opts ...Option) error {
 	opt := newOptions().apply(opts...)
-	return snapshot.Snapshot(rw, opt.encoder(), opt.comparer(), s)
-}
 
-type encoder struct {
-	marshalFns []func(*SQL) error
-}
-
-func (e *encoder) Marshal(v any) ([]byte, error) {
-	return Write(v.(*SQL), e.marshalFns...)
-}
-
-func (e *encoder) Unmarshal(b []byte) (a any, err error) {
-	return Read(b)
-}
-
-type comparer struct {
-	cmpOpt CompareOption
-	colors bool
-	file   string
-}
-
-func (c *comparer) Compare(a, b any) error {
-	x := a.(*SQL)
-	y := b.(*SQL)
-
-	comparer := diff.Text
-	if c.colors {
-		comparer = diff.ANSI
-	}
-
-	err := x.Compare(y, c.cmpOpt, comparer)
+	path := filepath.Join("testdata", fmt.Sprintf("%s.sql", filepath.Join(t.Name(), opt.file)))
+	f, err := file.New(path, opt.overwrite())
 	if err != nil {
-		if c.file != "" {
-			return fmt.Errorf("%s: %w", c.file, err)
-		}
-
 		return err
 	}
+	defer f.Close()
 
-	return nil
+	return snapshot.Snapshot(f, opt.encoder(), opt.comparer(), s)
 }

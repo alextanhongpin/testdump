@@ -4,20 +4,39 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/alextanhongpin/testdump/pkg/diff"
 	"github.com/google/go-cmp/cmp"
 	pg_query "github.com/pganalyze/pg_query_go/v4"
 )
 
-type SQL struct {
-	Query string
-	Args  []any
+type comparer struct {
+	opts   []cmp.Option
+	colors bool
+	file   string
 }
 
-type CompareOption struct {
-	CmpOpts []cmp.Option
+func (c *comparer) Compare(a, b any) error {
+	x := a.(*SQL)
+	y := b.(*SQL)
+
+	err := c.compare(x, y)
+	if err != nil {
+		if c.file != "" {
+			return fmt.Errorf("%s: %w", c.file, err)
+		}
+
+		return err
+	}
+
+	return nil
 }
 
-func (snapshot *SQL) Compare(received *SQL, opt CompareOption, cmp func(a, b any, opts ...cmp.Option) error) error {
+func (c *comparer) compare(snapshot, received *SQL) error {
+	cmp := diff.Text
+	if c.colors {
+		cmp = diff.ANSI
+	}
+
 	ok, err := CompareQuery(snapshot.Query, received.Query)
 	if err != nil {
 		return err
@@ -36,11 +55,16 @@ func (snapshot *SQL) Compare(received *SQL, opt CompareOption, cmp func(a, b any
 		return err
 	}
 
-	if err := cmp(lhs, rhs, opt.CmpOpts...); err != nil {
+	if err := cmp(lhs, rhs, c.opts...); err != nil {
 		return fmt.Errorf("Args: %w", err)
 	}
 
 	return nil
+}
+
+type SQL struct {
+	Query string
+	Args  []any
 }
 
 // CompareQuery checks if two queries are equal, ignoring variables.

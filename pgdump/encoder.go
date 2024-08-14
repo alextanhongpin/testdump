@@ -16,6 +16,18 @@ const (
 	argsSection  = "args"
 )
 
+type encoder struct {
+	marshalFns []func(*SQL) error
+}
+
+func (e *encoder) Marshal(v any) ([]byte, error) {
+	return Write(v.(*SQL), e.marshalFns...)
+}
+
+func (e *encoder) Unmarshal(b []byte) (a any, err error) {
+	return Read(b)
+}
+
 func Read(b []byte) (*SQL, error) {
 	d := new(SQL)
 
