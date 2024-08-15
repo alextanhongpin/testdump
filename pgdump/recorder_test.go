@@ -17,7 +17,7 @@ func TestRecorder(t *testing.T) {
 		"2", "Bob",
 	)
 
-	rec := pgdump.NewRecorder(t, db)
+	rec := pgdump.NewRecorder(t).DB(db)
 	ctx := context.Background()
 
 	var id int

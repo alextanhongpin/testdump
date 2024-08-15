@@ -17,7 +17,7 @@ func TestRecorder(t *testing.T) {
 		"2", "Bob",
 	)
 
-	rec := mysqldump.NewRecorder(t, db)
+	rec := mysqldump.NewRecorder(t).DB(db)
 	ctx := context.Background()
 
 	var id int
