@@ -10,4 +10,4 @@ If you are using an ORM, this will save you a lot in the long run, especially wh
 
 It improves observability and allows you to verify the generated SQL. Different ORM generates SQL differently, for example different casing, quoted tables and/or column definitions. Even handwritten ones might differ, but this library takes that into consideration when comparing the queries. In short, when switching to another ORM, your tests will not break just because one ORM prefers quoting a column etc.
 
-Using `pgdump.NewRecorder`, you can generate snapshots of all the executed SQL in a run.
+Using `pgdump.NewRecorder`, you can generate snapshots of all the executed SQL in a run. One advantage is you can easily copy the generated SQL to run in your clients for easier debugging.
