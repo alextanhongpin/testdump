@@ -318,3 +318,22 @@ func TestRegistry(t *testing.T) {
 	jd.Dump(t, User{Name: "John", LastLoggedIn: time.Now()})
 	jd.Dump(t, &Account{Name: "Personal Account", CreatedAt: time.Now()})
 }
+
+func TestIgnorePathChanges(t *testing.T) {
+	type User struct {
+		Name    string
+		Age     int
+		Hobbies []string
+	}
+
+	t.Run("field added", func(t *testing.T) {
+		u := User{Name: "John", Age: 13, Hobbies: []string{"reading", "writing"}}
+
+		jsondump.Dump(t, u)
+
+		u.Age = 15
+		u.Hobbies = append(u.Hobbies, "swimming")
+		// u.Hobbies = nil // This will fail.
+		jsondump.Dump(t, u, jsondump.IgnorePaths("$.Hobbies", "$.Age"))
+	})
+}

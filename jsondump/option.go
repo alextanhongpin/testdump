@@ -19,13 +19,13 @@ type Option func(o *options)
 
 // Define the options struct with various fields
 type options struct {
-	cmpOpts                 []cmp.Option
-	colors                  bool
-	env                     string // The environment variable name to overwrite the snapsnot.
-	file                    string // A custom file name.
-	ignorePathsTransformers []func([]byte) ([]byte, error)
-	rawOutput               bool
-	transformers            []func([]byte) ([]byte, error)
+	cmpOpts      []cmp.Option
+	colors       bool
+	env          string // The environment variable name to overwrite the snapsnot.
+	file         string // A custom file name.
+	ignorePaths  []string
+	rawOutput    bool
+	transformers []func([]byte) ([]byte, error)
 }
 
 func newOptions() *options {
@@ -51,15 +51,15 @@ func (o *options) overwrite() bool {
 
 func (o *options) encoder() *encoder {
 	return &encoder{
-		marshalFns:   o.transformers,
-		unmarshalFns: o.ignorePathsTransformers,
+		marshalFns: o.transformers,
 	}
 }
 
 func (o *options) comparer() *comparer {
 	return &comparer{
-		opts:   o.cmpOpts,
-		colors: o.colors,
+		colors:      o.colors,
+		ignorePaths: o.ignorePaths,
+		opts:        o.cmpOpts,
 	}
 }
 
@@ -108,7 +108,7 @@ func IgnoreFields(fields ...string) Option {
 // IgnorePaths is an Option that ignores certain paths
 func IgnorePaths(paths ...string) Option {
 	return func(o *options) {
-		o.ignorePathsTransformers = append(o.ignorePathsTransformers, internal.MaskPaths(ignoreValue, paths))
+		o.ignorePaths = paths
 	}
 }
 

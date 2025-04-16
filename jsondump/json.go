@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -131,14 +133,38 @@ func (e *encoder) Unmarshal(b []byte) (a any, err error) {
 }
 
 type comparer struct {
-	colors bool
-	opts   []cmp.Option
+	colors      bool
+	ignorePaths []string
+	opts        []cmp.Option
 }
 
 func (c *comparer) Compare(a, b any) error {
 	comparer := diff.Text
 	if c.colors {
 		comparer = diff.ANSI
+	}
+	// Before we decide to ignore the paths for comparison, we ensure that
+	// - the path is not empty on either side
+	// - the value is not empty on either side
+	// - the value type is the same on both sides
+	for _, path := range c.ignorePaths {
+		path = strings.TrimPrefix(path, "$.")
+
+		av, _ := internal.GetValue(a, path)
+		bv, _ := internal.GetValue(b, path)
+		if av == nil || bv == nil {
+			continue
+		}
+
+		if reflect.TypeOf(av) != reflect.TypeOf(bv) {
+			continue
+		}
+		if err := internal.DeleteValue(a, path); err != nil {
+			return err
+		}
+		if err := internal.DeleteValue(b, path); err != nil {
+			return err
+		}
 	}
 
 	return comparer(a, b, c.opts...)
