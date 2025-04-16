@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -147,27 +146,33 @@ func (c *comparer) Compare(a, b any) error {
 	// - the path is not empty on either side
 	// - the value is not empty on either side
 	// - the value type is the same on both sides
-	for _, path := range c.ignorePaths {
-		path = strings.TrimPrefix(path, "$.")
-
-		av, _ := internal.GetValue(a, path)
-		bv, _ := internal.GetValue(b, path)
-		if av == nil || bv == nil {
-			continue
-		}
-
-		if reflect.TypeOf(av) != reflect.TypeOf(bv) {
-			continue
-		}
-		if err := internal.DeleteValue(a, path); err != nil {
-			return err
-		}
-		if err := internal.DeleteValue(b, path); err != nil {
-			return err
+	aVals := internal.GetMapValues(a, c.ignorePaths...)
+	bVals := internal.GetMapValues(b, c.ignorePaths...)
+	var remove []string
+	if len(aVals) == len(bVals) && len(aVals) == len(c.ignorePaths) {
+		for key, aVal := range aVals {
+			bVal := bVals[key]
+			if aVal == nil || bVal == nil {
+				continue
+			}
+			if reflect.TypeOf(aVal) != reflect.TypeOf(bVal) {
+				continue
+			}
+			remove = append(remove, key)
 		}
 	}
 
-	return comparer(a, b, c.opts...)
+	ac, err := internal.DeleteMapValues(a, remove...)
+	if err != nil {
+		return err
+	}
+
+	bc, err := internal.DeleteMapValues(b, remove...)
+	if err != nil {
+		return err
+	}
+
+	return comparer(ac, bc, c.opts...)
 }
 
 func indent(b []byte) ([]byte, error) {

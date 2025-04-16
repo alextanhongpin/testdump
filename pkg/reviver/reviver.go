@@ -15,6 +15,8 @@ const root = "$"
 // key-value pair in the JSON object.
 type ReviverFunc func(k string, v any) (any, error)
 
+type WalkFunc func(k string, v any) error
+
 // Unmarshal parses the JSON-encoded data and stores the
 // result in the value pointed to by t.
 func Unmarshal(b []byte, t any, fn ReviverFunc) error {
@@ -80,6 +82,41 @@ func Unmarshal(b []byte, t any, fn ReviverFunc) error {
 	}
 
 	return json.Unmarshal(b, t)
+}
+
+func Walk(a any, fn WalkFunc) error {
+	var walk func(string, any) error
+	walk = func(p string, a any) error {
+		switch m := a.(type) {
+		case map[string]any:
+			if err := fn(p, m); err != nil {
+				return err
+			}
+
+			for k, v := range m {
+				if err := walk(fmt.Sprintf("%s.%s", p, k), v); err != nil {
+					return err
+				}
+			}
+			return nil
+		case []any:
+			if err := fn(p, m); err != nil {
+				return err
+			}
+
+			for i, a := range m {
+				if err := walk(fmt.Sprintf("%s[%d]", p, i), a); err != nil {
+					return err
+				}
+			}
+
+			return nil
+		default:
+			return fn(p, a)
+		}
+	}
+
+	return walk(root, a)
 }
 
 // Base returns the base name of the path.
