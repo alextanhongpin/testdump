@@ -2,7 +2,7 @@ package internal
 
 import (
 	"encoding/json"
-	"errors"
+	"io"
 	"slices"
 
 	"github.com/alextanhongpin/testdump/pkg/reviver"
@@ -18,8 +18,10 @@ func GetMapValues(a any, paths ...string) map[string]any {
 		if slices.Contains(paths, k) {
 			res[k] = v
 		}
+
+		// Terminate early
 		if len(res) == len(paths) {
-			return errors.ErrUnsupported
+			return io.EOF
 		}
 		return nil
 	})
