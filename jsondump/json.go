@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -131,8 +132,9 @@ func (e *encoder) Unmarshal(b []byte) (a any, err error) {
 }
 
 type comparer struct {
-	colors bool
-	opts   []cmp.Option
+	colors      bool
+	ignorePaths []string
+	opts        []cmp.Option
 }
 
 func (c *comparer) Compare(a, b any) error {
@@ -140,8 +142,37 @@ func (c *comparer) Compare(a, b any) error {
 	if c.colors {
 		comparer = diff.ANSI
 	}
+	// Before we decide to ignore the paths for comparison, we ensure that
+	// - the path is not empty on either side
+	// - the value is not empty on either side
+	// - the value type is the same on both sides
+	aVals := internal.GetMapValues(a, c.ignorePaths...)
+	bVals := internal.GetMapValues(b, c.ignorePaths...)
+	var remove []string
+	if len(aVals) == len(bVals) && len(aVals) == len(c.ignorePaths) {
+		for key, aVal := range aVals {
+			bVal := bVals[key]
+			if aVal == nil || bVal == nil {
+				continue
+			}
+			if reflect.TypeOf(aVal) != reflect.TypeOf(bVal) {
+				continue
+			}
+			remove = append(remove, key)
+		}
+	}
 
-	return comparer(a, b, c.opts...)
+	ac, err := internal.DeleteMapValues(a, remove...)
+	if err != nil {
+		return err
+	}
+
+	bc, err := internal.DeleteMapValues(b, remove...)
+	if err != nil {
+		return err
+	}
+
+	return comparer(ac, bc, c.opts...)
 }
 
 func indent(b []byte) ([]byte, error) {
