@@ -443,7 +443,7 @@ func TestRoundTrip(t *testing.T) {
 	}
 
 	// Dump using round tripper (doesn't consume request body).
-	rt := httpdump.RoundTrip(t, httpdump.IgnoreResponseHeaders("Date"))
+	rt := httpdump.RoundTrip(t, http.DefaultTransport, httpdump.IgnoreResponseHeaders("Date"))
 	client := &http.Client{
 		Transport: rt,
 	}
