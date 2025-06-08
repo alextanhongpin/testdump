@@ -47,6 +47,14 @@ func TestUserData(t *testing.T) {
 }
 ```
 
+## Useful git
+
+```
+# Regenerate 
+TESTDUMP=1 go test -v 
+git diff -U0 -I start -I CreatedAt -I ID | git apply --cached --unidiff-zero
+```
+
 ## Benefits
 
 - **Simplified Testing**: No need to write lengthy assertion code - just dump the data and compare with the expected output.
