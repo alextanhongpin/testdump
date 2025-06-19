@@ -1,20 +1,26 @@
-- created_at: 2024-06-19 01:55:38.905373 +0800 +08 m=+0.001282969
+- created_at: 2025-06-19 15:31:25.379071 +0800 +08 m=+0.001335835
+  data:
+    key: value
   email: alpha@mail.com
   id: "1"
   name: alpha
-- created_at: 2024-06-19 01:55:38.905552 +0800 +08 m=+0.001462055
+- created_at: 2025-06-19 15:31:25.379226 +0800 +08 m=+0.001490543
+  data: null
   email: beta@mail.com
   id: "1"
   name: beta
-- created_at: 2024-06-19 01:55:38.905553 +0800 +08 m=+0.001463212
+- created_at: 2025-06-19 15:31:25.379227 +0800 +08 m=+0.001491251
+  data: null
   email: charlie@mail.com
   id: "1"
   name: charlie
-- created_at: 2024-06-19 01:55:38.905554 +0800 +08 m=+0.001463936
+- created_at: 2025-06-19 15:31:25.379227 +0800 +08 m=+0.001491626
+  data: null
   email: dwayne@mail.com
   id: "1"
   name: dwayne
-- created_at: 2024-06-19 01:55:38.905555 +0800 +08 m=+0.001464486
+- created_at: 2025-06-19 15:31:25.379227 +0800 +08 m=+0.001492001
+  data: null
   email: ellie@mail.com
   id: "1"
   name: ellie

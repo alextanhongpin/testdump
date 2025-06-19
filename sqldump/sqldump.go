@@ -3,24 +3,29 @@ package sqldump
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"slices"
 )
 
-func Dump(ctx context.Context, db *sql.DB, query string, args ...any) ([]map[string]any, error) {
+func Query(ctx context.Context, db *sql.DB, query string, args ...any) ([]map[string]any, error) {
+	// Query all rows.
 	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
+	// Get the column names.
 	columns, err := rows.Columns()
 	if err != nil {
 		return nil, err
 	}
 
+	// Ensure unique column names.
 	columns = uniqueColumns(columns)
 
+	// Serialize the rows into a slice of maps.
 	var result []map[string]any
 	for rows.Next() {
 		cols := make([]any, len(columns))
@@ -34,7 +39,15 @@ func Dump(ctx context.Context, db *sql.DB, query string, args ...any) ([]map[str
 		m := make(map[string]any)
 		for i := range columns {
 			if b, ok := cols[i].([]byte); ok {
-				m[columns[i]] = string(b)
+				if json.Valid(b) {
+					var a any
+					if err := json.Unmarshal(b, &a); err != nil {
+						return nil, err
+					}
+					m[columns[i]] = a
+				} else {
+					m[columns[i]] = string(b)
+				}
 			} else {
 				m[columns[i]] = cols[i]
 			}
