@@ -5,67 +5,47 @@ package reviver
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
-	"strings"
 )
-
-const root = "$"
-
-// ReviverFunc is a function that is called for each
-// key-value pair in the JSON object.
-type ReviverFunc func(k string, v any) (any, error)
-
-type WalkFunc func(k string, v any) error
 
 // Unmarshal parses the JSON-encoded data and stores the
 // result in the value pointed to by t.
-func Unmarshal(b []byte, t any, fn ReviverFunc) error {
+func Unmarshal(b []byte, t any, fn func(k []string, v any) (any, error)) error {
 	var a any
 	if err := json.Unmarshal(b, &a); err != nil {
 		return err
 	}
 
-	var recurse func(string, any) (any, error)
-	recurse = func(p string, a any) (any, error) {
+	var recurse func([]string, any) (any, error)
+	recurse = func(p []string, a any) (any, error) {
 		switch m := a.(type) {
 		case map[string]any:
-			if v, err := fn(p, m); err != nil {
-				return nil, err
-			} else if !reflect.DeepEqual(v, m) {
-				return v, nil
-			}
-
 			for k, v := range m {
-				o, err := recurse(fmt.Sprintf("%s.%s", p, k), v)
+				o, err := recurse(append(p, k), v)
 				if err != nil {
 					return nil, err
 				}
 				m[k] = o
 			}
-			return m, nil
-		case []any:
-			if v, err := fn(p, m); err != nil {
-				return nil, err
-			} else if !reflect.DeepEqual(v, m) {
-				return v, nil
-			}
 
+			return fn(p, m)
+		case []any:
+			h, t := pop(p)
 			res := make([]any, len(m))
 			for i, a := range m {
-				o, err := recurse(fmt.Sprintf("%s[%d]", p, i), a)
+				o, err := recurse(append(h, fmt.Sprintf("%s[%d]", t, i)), a)
 				if err != nil {
 					return nil, err
 				}
 				res[i] = o
 			}
 
-			return res, nil
+			return fn(p, res)
 		default:
 			return fn(p, a)
 		}
 	}
 
-	o, err := recurse(root, a)
+	o, err := recurse(nil, a)
 	if err != nil {
 		return err
 	}
@@ -84,9 +64,11 @@ func Unmarshal(b []byte, t any, fn ReviverFunc) error {
 	return json.Unmarshal(b, t)
 }
 
+type WalkFunc = func(k []string, v any) error
+
 func Walk(a any, fn WalkFunc) error {
-	var walk func(string, any) error
-	walk = func(p string, a any) error {
+	var walk func([]string, any) error
+	walk = func(p []string, a any) error {
 		switch m := a.(type) {
 		case map[string]any:
 			if err := fn(p, m); err != nil {
@@ -94,7 +76,7 @@ func Walk(a any, fn WalkFunc) error {
 			}
 
 			for k, v := range m {
-				if err := walk(fmt.Sprintf("%s.%s", p, k), v); err != nil {
+				if err := walk(append(p, k), v); err != nil {
 					return err
 				}
 			}
@@ -104,8 +86,9 @@ func Walk(a any, fn WalkFunc) error {
 				return err
 			}
 
+			p, tail := pop(p)
 			for i, a := range m {
-				if err := walk(fmt.Sprintf("%s[%d]", p, i), a); err != nil {
+				if err := walk(append(p, fmt.Sprintf("%s[%d]", tail, i)), a); err != nil {
 					return err
 				}
 			}
@@ -116,14 +99,16 @@ func Walk(a any, fn WalkFunc) error {
 		}
 	}
 
-	return walk(root, a)
+	return walk(nil, a)
 }
 
-// Base returns the base name of the path.
-func Base(k string) string {
-	parts := strings.Split(k, ".")
-	if len(parts) == 0 {
-		return ""
+func pop(p []string) ([]string, string) {
+	if len(p) == 0 {
+		return nil, ""
 	}
-	return parts[len(parts)-1]
+
+	// Create a copy to avoid sharing the underlying array
+	result := make([]string, len(p)-1)
+	copy(result, p[:len(p)-1])
+	return result, p[len(p)-1]
 }
