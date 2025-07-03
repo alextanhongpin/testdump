@@ -6,7 +6,7 @@ require (
 	github.com/alextanhongpin/testdump/pkg/cuetest v0.0.0-20240617040714-9d0b95c731bd
 	github.com/alextanhongpin/testdump/pkg/diff v0.0.0-20240815130218-4368114cac78
 	github.com/alextanhongpin/testdump/pkg/file v0.0.0-20240815130218-4368114cac78
-	github.com/alextanhongpin/testdump/pkg/reviver v0.0.0-20250416130825-f5d418e5c073
+	github.com/alextanhongpin/testdump/pkg/reviver v0.0.0-20250703143628-690a3172cce5
 	github.com/alextanhongpin/testdump/pkg/snapshot v0.0.0-20240815130218-4368114cac78
 	github.com/google/go-cmp v0.7.0
 	github.com/stretchr/testify v1.7.0

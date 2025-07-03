@@ -4,17 +4,19 @@ import (
 	"encoding/json"
 	"io"
 	"slices"
+	"strings"
 
 	"github.com/alextanhongpin/testdump/pkg/reviver"
 )
 
-func GetMapValues(a any, paths ...string) map[string]any {
+func LoadMapValues(a any, paths ...string) map[string]any {
 	if len(paths) == 0 {
 		return nil
 	}
 
 	res := make(map[string]any)
-	_ = reviver.Walk(a, func(k string, v any) error {
+	_ = reviver.Walk(a, func(keys []string, v any) error {
+		k := strings.Join(keys, ".")
 		if slices.Contains(paths, k) {
 			res[k] = v
 		}
@@ -34,19 +36,15 @@ func DeleteMapValues(a any, paths ...string) (any, error) {
 		return a, nil
 	}
 
-	set := make(map[string]struct{})
-	for _, p := range paths {
-		set[p] = struct{}{}
-	}
 	b, err := json.Marshal(a)
 	if err != nil {
 		return nil, err
 	}
 
 	var c any
-	err = reviver.Unmarshal(b, &c, func(k string, v any) (any, error) {
-		if _, ok := set[k]; ok {
-			delete(set, k)
+	err = reviver.Unmarshal(b, &c, func(keys []string, v any) (any, error) {
+		k := strings.Join(keys, ".")
+		if slices.Contains(paths, k) {
 			return nil, nil
 		}
 

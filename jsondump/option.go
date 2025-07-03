@@ -19,13 +19,14 @@ type Option func(o *options)
 
 // Define the options struct with various fields
 type options struct {
-	cmpOpts      []cmp.Option
-	colors       bool
-	env          string // The environment variable name to overwrite the snapsnot.
-	file         string // A custom file name.
-	ignorePaths  []string
-	rawOutput    bool
-	transformers []func([]byte) ([]byte, error)
+	cmpOpts     []cmp.Option
+	colors      bool
+	env         string // The environment variable name to overwrite the snapsnot.
+	fieldFuncs  []func(keys []string, val any) (any, error)
+	file        string // A custom file name.
+	ignorePaths []string
+	rawOutput   bool
+	byteFuncs   []func([]byte) ([]byte, error)
 }
 
 func newOptions() *options {
@@ -51,7 +52,8 @@ func (o *options) overwrite() bool {
 
 func (o *options) encoder() *encoder {
 	return &encoder{
-		marshalFns: o.transformers,
+		byteFuncs:  o.byteFuncs,
+		fieldFuncs: o.fieldFuncs,
 	}
 }
 
@@ -87,7 +89,7 @@ func Colors(colors bool) Option {
 // Transformers is an Option that adds a transformer function
 func Transformers(p ...func([]byte) ([]byte, error)) Option {
 	return func(o *options) {
-		o.transformers = append(o.transformers, p...)
+		o.byteFuncs = append(o.byteFuncs, p...)
 	}
 }
 
@@ -114,12 +116,16 @@ func IgnorePaths(paths ...string) Option {
 
 // MaskFields is an Option that masks certain fields
 func MaskFields(mask string, fields []string) Option {
-	return Transformers(internal.MaskFields(mask, fields))
+	return func(o *options) {
+		o.fieldFuncs = append(o.fieldFuncs, internal.MaskFieldsFunc(mask, fields))
+	}
 }
 
 // MaskPaths is an Option that masks certain paths
 func MaskPaths(mask string, paths []string) Option {
-	return Transformers(internal.MaskPaths(mask, paths))
+	return func(o *options) {
+		o.fieldFuncs = append(o.fieldFuncs, internal.MaskPathsFunc(mask, paths))
+	}
 }
 
 // Define a struct for a Masker

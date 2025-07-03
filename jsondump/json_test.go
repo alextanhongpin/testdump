@@ -80,7 +80,7 @@ func TestIgnorePaths(t *testing.T) {
 
 	// NOTE: the name is the json tag name.
 	jsondump.Dump(t, banner,
-		jsondump.IgnorePaths("$.banner1.expiresIn", "$.banner2.expiresIn"),
+		jsondump.IgnorePaths("banner1.expiresIn", "banner2.expiresIn"),
 	)
 }
 
@@ -118,8 +118,8 @@ func TestNew(t *testing.T) {
 	}
 
 	jd := jsondump.New(
-		jsondump.IgnorePaths("$.createdAt"),
-		jsondump.MaskPaths("[REDACTED]", []string{"$.password"}),
+		jsondump.IgnorePaths("createdAt"),
+		jsondump.MaskPaths("[REDACTED]", []string{"password"}),
 	)
 	jd.Dump(t, User{
 		Password:  "password",
@@ -149,7 +149,7 @@ func TestMaskPaths(t *testing.T) {
 		},
 	}
 
-	jsondump.Dump(t, accounts, jsondump.MaskPaths("[MASKED]", []string{"$.email.email"}))
+	jsondump.Dump(t, accounts, jsondump.MaskPaths("[MASKED]", []string{"email.email"}))
 }
 
 func TestCustomTransformer(t *testing.T) {
@@ -334,6 +334,6 @@ func TestIgnorePathChanges(t *testing.T) {
 		u.Age = 15
 		u.Hobbies = append(u.Hobbies, "swimming")
 		// u.Hobbies = nil // This will fail.
-		jsondump.Dump(t, u, jsondump.IgnorePaths("$.Hobbies", "$.Age"))
+		jsondump.Dump(t, u, jsondump.IgnorePaths("Hobbies", "Age"))
 	})
 }
