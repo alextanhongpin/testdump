@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/alextanhongpin/testdump/pkg/diff"
 	"github.com/alextanhongpin/testdump/pkg/file"
+	"github.com/alextanhongpin/testdump/pkg/reviver"
 	"github.com/alextanhongpin/testdump/pkg/snapshot"
 	"github.com/alextanhongpin/testdump/yamldump/internal"
 	"github.com/google/go-cmp/cmp"
@@ -92,17 +94,27 @@ func dump(t *testing.T, v any, opts ...Option) error {
 }
 
 type encoder struct {
-	marshalFns   []func([]byte) ([]byte, error)
-	unmarshalFns []func([]byte) ([]byte, error)
+	byteFuncs  []func([]byte) ([]byte, error)
+	fieldFuncs []func(keys []string, val any) (any, error)
 }
 
 func (e *encoder) Marshal(v any) ([]byte, error) {
-	b, err := json.Marshal(v)
+	b, err := reviver.Marshal(v, func(keys []string, val any) (any, error) {
+		var err error
+		for _, fn := range e.fieldFuncs {
+			val, err = fn(keys, val)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return val, nil
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	for _, fn := range e.marshalFns {
+	for _, fn := range e.byteFuncs {
 		b, err = fn(b)
 		if err != nil {
 			return nil, err
@@ -128,13 +140,6 @@ func (e *encoder) Unmarshal(b []byte) (a any, err error) {
 		return nil, err
 	}
 
-	for _, fn := range e.unmarshalFns {
-		b, err = fn(b)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	a = nil
 
 	// Convert back to map[string]any for nicer diff.
@@ -147,8 +152,9 @@ func (e *encoder) Unmarshal(b []byte) (a any, err error) {
 }
 
 type comparer struct {
-	colors bool
-	opts   []cmp.Option
+	colors      bool
+	ignorePaths []string
+	opts        []cmp.Option
 }
 
 func (c *comparer) Compare(a, b any) error {
@@ -157,5 +163,38 @@ func (c *comparer) Compare(a, b any) error {
 		comparer = diff.ANSI
 	}
 
-	return comparer(a, b, c.opts...)
+	// Before we decide to ignore the paths for comparison, we ensure that
+	// - the path is not empty on either side
+	// - the value is not empty on either side
+	// - the value type is the same on both sides
+	aVals := internal.LoadMapValues(a, c.ignorePaths...)
+	bVals := internal.LoadMapValues(b, c.ignorePaths...)
+
+	var remove []string
+	for _, path := range c.ignorePaths {
+		aVal, ok := aVals[path]
+		if !ok {
+			return fmt.Errorf("path %q not found in snapshot", path)
+		}
+		bVal, ok := bVals[path]
+		if !ok {
+			return fmt.Errorf("path %q not found in received value", path)
+		}
+		if reflect.TypeOf(aVal) != reflect.TypeOf(bVal) {
+			return fmt.Errorf("path %q has different types: %T vs %T", path, aVal, bVal)
+		}
+		remove = append(remove, path)
+	}
+
+	ac, err := internal.DeleteMapValues(a, remove...)
+	if err != nil {
+		return err
+	}
+
+	bc, err := internal.DeleteMapValues(b, remove...)
+	if err != nil {
+		return err
+	}
+
+	return comparer(ac, bc, c.opts...)
 }

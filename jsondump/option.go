@@ -19,6 +19,7 @@ type Option func(o *options)
 
 // Define the options struct with various fields
 type options struct {
+	byteFuncs   []func([]byte) ([]byte, error)
 	cmpOpts     []cmp.Option
 	colors      bool
 	env         string // The environment variable name to overwrite the snapsnot.
@@ -26,7 +27,6 @@ type options struct {
 	file        string // A custom file name.
 	ignorePaths []string
 	rawOutput   bool
-	byteFuncs   []func([]byte) ([]byte, error)
 }
 
 func newOptions() *options {

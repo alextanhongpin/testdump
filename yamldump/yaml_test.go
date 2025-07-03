@@ -79,7 +79,7 @@ func TestIgnorePaths(t *testing.T) {
 
 	// NOTE: the name is the json tag name.
 	yamldump.Dump(t, banner,
-		yamldump.IgnorePaths("$.banner1.expiresIn", "$.banner2.expiresIn"),
+		yamldump.IgnorePaths("banner1.expiresIn", "banner2.expiresIn"),
 	)
 }
 
@@ -117,8 +117,8 @@ func TestNew(t *testing.T) {
 	}
 
 	yd := yamldump.New(
-		yamldump.IgnorePaths("$.createdAt"),
-		yamldump.MaskPaths("[REDACTED]", []string{"$.password"}),
+		yamldump.IgnorePaths("createdAt"),
+		yamldump.MaskPaths("[REDACTED]", []string{"password"}),
 	)
 	yd.Dump(t, User{
 		Password:  "password",
@@ -148,7 +148,7 @@ func TestMaskPaths(t *testing.T) {
 		},
 	}
 
-	yamldump.Dump(t, accounts, yamldump.MaskPaths("[MASKED]", []string{"$.email.email"}))
+	yamldump.Dump(t, accounts, yamldump.MaskPaths("[MASKED]", []string{"email.email"}))
 }
 
 func TestCustomTransformer(t *testing.T) {

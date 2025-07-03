@@ -142,6 +142,7 @@ func (c *comparer) Compare(a, b any) error {
 	if c.colors {
 		comparer = diff.ANSI
 	}
+
 	// Before we decide to ignore the paths for comparison, we ensure that
 	// - the path is not empty on either side
 	// - the value is not empty on either side

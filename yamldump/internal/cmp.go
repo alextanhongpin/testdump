@@ -8,16 +8,7 @@ import (
 )
 
 func IgnoreMapEntries(keys ...string) cmp.Option {
-	slices.Sort(keys)
-	keys = slices.Compact(keys)
-
 	return cmpopts.IgnoreMapEntries(func(k string, v any) bool {
-		for _, key := range keys {
-			if key == k {
-				return true
-			}
-		}
-
-		return false
+		return slices.Contains(keys, k)
 	})
 }

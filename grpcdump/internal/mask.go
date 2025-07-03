@@ -1,63 +1,41 @@
 package internal
 
 import (
-	"encoding/json"
 	"slices"
-
-	"github.com/alextanhongpin/testdump/pkg/reviver"
+	"strings"
 )
 
-// MaskFields masks the field names. It does not take into
-// consideration the path.
-func MaskFields(mask string, fields []string) func([]byte) ([]byte, error) {
-	slices.Sort(fields)
-	fields = slices.Compact(fields)
+type fieldFunc = func([]string, any) (any, error)
 
-	return func(b []byte) ([]byte, error) {
-		var m any
-		if err := reviver.Unmarshal(b, &m, func(key string, val any) (any, error) {
-			path := reviver.Base(key)
-			for _, f := range fields {
-				if f == path {
-					// Allows masking string values only for now.
-					_, ok := val.(string)
-					if ok {
-						return mask, nil
-					}
-				}
-			}
-
+func MaskFieldsFunc(mask string, fields []string) fieldFunc {
+	return func(keys []string, val any) (any, error) {
+		if len(keys) == 0 {
 			return val, nil
-		}); err != nil {
-			return nil, err
 		}
 
-		return json.MarshalIndent(m, "", " ")
+		field := keys[len(keys)-1]
+		if slices.Contains(fields, field) {
+			// Allows masking string values only for now.
+			if _, ok := val.(string); ok {
+				return mask, nil
+			}
+		}
+
+		return val, nil
 	}
 }
 
-func MaskPaths(mask string, paths []string) func([]byte) ([]byte, error) {
-	slices.Sort(paths)
-	paths = slices.Compact(paths)
-
-	return func(b []byte) ([]byte, error) {
-		var m any
-		if err := reviver.Unmarshal(b, &m, func(key string, val any) (any, error) {
-			for _, f := range paths {
-				if f == key {
-					// Allows masking string values only for now.
-					_, ok := val.(string)
-					if ok {
-						return mask, nil
-					}
-				}
+func MaskPathsFunc(mask string, paths []string) fieldFunc {
+	return func(keys []string, val any) (any, error) {
+		path := strings.Join(keys, ".")
+		if slices.Contains(paths, path) {
+			// Allows masking string values only for now.
+			_, ok := val.(string)
+			if ok {
+				return mask, nil
 			}
-
-			return val, nil
-		}); err != nil {
-			return nil, err
 		}
 
-		return json.MarshalIndent(m, "", " ")
+		return val, nil
 	}
 }

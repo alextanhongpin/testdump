@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/alextanhongpin/testdump/grpcdump/internal"
+	"github.com/alextanhongpin/testdump/pkg/reviver"
 )
 
 const env = "TESTDUMP"
@@ -144,20 +145,40 @@ func MaskHeader(mask string, keys []string) Option {
 // This Option, when applied, configures the options object to mask certain message fields.
 // The mask and the fields to mask are provided as arguments to the function.
 func MaskMessageFields(mask string, fields []string) Option {
-	masker := internal.MaskFields(mask, fields) // Create a masker function.
 	return func(o *options) {
 		o.transformers = append(o.transformers, func(g *GRPC) error {
 			// Apply the mask to each message in the gRPC object.
 			for i, msg := range g.Messages {
-				b, err := json.Marshal(msg.Message) // Convert the message to JSON.
+				b, err := reviver.Marshal(msg.Message, internal.MaskFieldsFunc(mask, fields))
 				if err != nil {
 					return err // Return the error if the message cannot be converted to JSON.
 				}
 
-				b, err = masker(b) // Apply the mask to the JSON message.
-				if err != nil {
-					return err // Return the error if the mask cannot be applied.
+				var a any
+				if err := json.Unmarshal(b, &a); err != nil { // Convert the masked JSON message back to a message object.
+					return err // Return the error if the masked JSON message cannot be converted back to a message object.
 				}
+				g.Messages[i].Message = a // Update the message with the masked values.
+			}
+
+			return nil
+		})
+	}
+}
+
+// MaskMessagePaths is a function that returns an Option.
+// This Option, when applied, configures the options object to mask certain message paths.
+// The mask and the fields to mask are provided as arguments to the function.
+func MaskMessagePaths(mask string, paths []string) Option {
+	return func(o *options) {
+		o.transformers = append(o.transformers, func(g *GRPC) error {
+			// Apply the mask to each message in the gRPC object.
+			for i, msg := range g.Messages {
+				b, err := reviver.Marshal(msg.Message, internal.MaskPathsFunc(mask, paths))
+				if err != nil {
+					return err // Return the error if the message cannot be converted to JSON.
+				}
+
 				var a any
 				if err := json.Unmarshal(b, &a); err != nil { // Convert the masked JSON message back to a message object.
 					return err // Return the error if the masked JSON message cannot be converted back to a message object.

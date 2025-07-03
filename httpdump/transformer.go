@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/alextanhongpin/testdump/pkg/reviver"
@@ -74,14 +75,15 @@ func maskRequestFields(mask string, fields ...string) Transformer {
 		}
 
 		var t map[string]any
-		if err := reviver.Unmarshal(b, &t, func(key string, val any) (any, error) {
-			path := reviver.Base(key)
-			for _, f := range fields {
-				if f == path {
-					// Only mask the value if it is a string.
-					if _, ok := val.(string); ok {
-						return mask, nil
-					}
+		if err := reviver.Unmarshal(b, &t, func(paths []string, val any) (any, error) {
+			var field string
+			if len(paths) > 0 {
+				field = paths[len(paths)-1]
+			}
+			if slices.Contains(fields, field) {
+				// Only mask the value if it is a string.
+				if _, ok := val.(string); ok {
+					return mask, nil
 				}
 			}
 
@@ -114,14 +116,15 @@ func maskResponseFields(mask string, fields ...string) Transformer {
 		}
 
 		var t map[string]any
-		if err := reviver.Unmarshal(b, &t, func(key string, val any) (any, error) {
-			path := reviver.Base(key)
-			for _, f := range fields {
-				if f == path {
-					// Only mask the value if it is a string.
-					if _, ok := val.(string); ok {
-						return mask, nil
-					}
+		if err := reviver.Unmarshal(b, &t, func(paths []string, val any) (any, error) {
+			var field string
+			if len(paths) > 0 {
+				field = paths[len(paths)-1]
+			}
+			if slices.Contains(fields, field) {
+				// Only mask the value if it is a string.
+				if _, ok := val.(string); ok {
+					return mask, nil
 				}
 			}
 
