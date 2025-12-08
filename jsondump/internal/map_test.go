@@ -63,7 +63,7 @@ func TestGetValue(t *testing.T) {
 	}
 
 	is := assert.New(t)
-	m := internal.GetMapValues(data, paths...)
+	m := internal.LoadMapValues(data, paths...)
 	for _, tc := range testCases {
 		is.Equal(tc.want, m[tc.path], tc.path)
 	}
@@ -122,8 +122,8 @@ func TestDeleteValue(t *testing.T) {
 		b, err := internal.DeleteMapValues(a, tc.path)
 		is.Nil(err)
 
-		ma := internal.GetMapValues(a, tc.path)
-		mb := internal.GetMapValues(b, tc.path)
+		ma := internal.LoadMapValues(a, tc.path)
+		mb := internal.LoadMapValues(b, tc.path)
 		if tc.deleted {
 			is.NotNil(ma[tc.path], tc.path)
 			is.Nil(mb[tc.path], tc.path)
