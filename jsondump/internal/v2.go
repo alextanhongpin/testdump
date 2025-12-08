@@ -15,7 +15,6 @@ func ReplaceJSON(b []byte, kv map[string]any) ([]byte, error) {
 	out := new(bytes.Buffer)
 	enc := jsontext.NewEncoder(out, jsontext.Multiline(true)) // expand for readability
 	// Keep track of the field-value...
-	ctr := make(map[string]int)
 	for {
 		// Read a token from the input.
 		tok, err := dec.ReadToken()
@@ -28,18 +27,15 @@ func ReplaceJSON(b []byte, kv map[string]any) ([]byte, error) {
 
 		// Check whether the token contains the string "Golang" and
 		// replace each occurrence with "Go" instead.
-		fmt.Println(dec.StackPointer(), tok, tok.Kind(), dec.StackPointer().LastToken(), dec.StackDepth())
 		key := strings.TrimPrefix(string(dec.StackPointer()), "/") // Last token doesn't have the initial slash before the key.
+		fmt.Println(key)
 		if v, ok := kv[key]; ok {
-			ctr[key]++
-			if ctr[key] != 2 {
-				if err := enc.WriteToken(tok); err != nil {
-					return nil, err
-				}
-				continue
+			// Write the key
+			if err := enc.WriteToken(tok); err != nil {
+				return nil, err
 			}
-			delete(kv, key)
-			delete(ctr, key)
+			// Read the value
+			tok, _ = dec.ReadToken()
 
 			switch tok.Kind() {
 			case '"':
