@@ -91,22 +91,22 @@ func TestDeleteValue(t *testing.T) {
 		path    string
 		deleted bool
 	}{
-		{"$.a.b[0]", true},
-		{"$.a.b[1].d", true},
-		{"$.a.b[2]", true},
-		{"$.a.b[1].f[0]", true},
-		{"$.a.b[1].f[1]", true},
-		{"$.a.b[1].f[2]", true},
-		{"$.h", true},
-		{"$.i[0]", true},
-		{"$.i[1]", true},
-		{"$.i[2]", true},
-		{"$.a.g", false},
-		{"$.a.b[3]", false},
-		{"$.a.c", false},
-		{"$.a.b[1].x", false},
-		{"$.a.b[1].f[3]", false},
-		{"$.i[3]", false},
+		{"a.b[0]", true},
+		{"a.b[1].d", true},
+		{"a.b[2]", true},
+		{"a.b[1].f[0]", true},
+		{"a.b[1].f[1]", true},
+		{"a.b[1].f[2]", true},
+		{"h", true},
+		{"i[0]", true},
+		{"i[1]", true},
+		{"i[2]", true},
+		{"a.g", false},
+		{"a.b[3]", false},
+		{"a.c", false},
+		{"a.b[1].x", false},
+		{"a.b[1].f[3]", false},
+		{"i[3]", false},
 	}
 
 	is := assert.New(t)

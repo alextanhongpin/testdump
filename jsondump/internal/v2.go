@@ -28,22 +28,40 @@ func ReplaceJSON(b []byte, kv map[string]any) ([]byte, error) {
 		// Check whether the token contains the string "Golang" and
 		// replace each occurrence with "Go" instead.
 		key := strings.TrimPrefix(string(dec.StackPointer()), "/") // Last token doesn't have the initial slash before the key.
-		fmt.Println(key)
+		k, _ := dec.StackIndex(dec.StackDepth())
+		fmt.Println(key, dec.StackDepth(), string(k))
 		if v, ok := kv[key]; ok {
 			// Write the key
-			if err := enc.WriteToken(tok); err != nil {
-				return nil, err
-			}
-			// Read the value
-			tok, _ = dec.ReadToken()
+			if k, _ := dec.StackIndex(dec.StackDepth()); k == '[' {
+				// replace array item directly.
+				switch tok.Kind() {
+				case '"':
+					tok = jsontext.String(v.(string))
+				case '0':
+					tok = jsontext.Float(v.(float64))
+				case 't', 'f':
+					tok = jsontext.Bool(v.(bool))
+				}
+				delete(kv, key)
+			} else {
+				if err := enc.WriteToken(tok); err != nil {
+					return nil, err
+				}
+				delete(kv, key)
+				// Read the value
+				tok, err = dec.ReadToken()
+				if err != nil {
+					return nil, err
+				}
 
-			switch tok.Kind() {
-			case '"':
-				tok = jsontext.String(v.(string))
-			case '0':
-				tok = jsontext.Float(v.(float64))
-			case 't', 'f':
-				tok = jsontext.Bool(v.(bool))
+				switch tok.Kind() {
+				case '"':
+					tok = jsontext.String(v.(string))
+				case '0':
+					tok = jsontext.Float(v.(float64))
+				case 't', 'f':
+					tok = jsontext.Bool(v.(bool))
+				}
 			}
 		}
 
@@ -51,6 +69,9 @@ func ReplaceJSON(b []byte, kv map[string]any) ([]byte, error) {
 		if err := enc.WriteToken(tok); err != nil {
 			return nil, err
 		}
+	}
+	if len(kv) > 0 {
+		panic(fmt.Sprint(kv))
 	}
 
 	return out.Bytes(), nil
