@@ -9,6 +9,7 @@ require (
 	github.com/alextanhongpin/testdump/pkg/reviver v0.0.0-20250703151453-77514452c9aa
 	github.com/alextanhongpin/testdump/pkg/snapshot v0.0.0-20250703151453-77514452c9aa
 	github.com/google/go-cmp v0.7.0
+	github.com/google/uuid v1.2.0
 	github.com/stretchr/testify v1.7.0
 )
 
@@ -19,7 +20,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/proto v1.10.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
-	github.com/google/uuid v1.2.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0 // indirect
