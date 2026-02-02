@@ -4,10 +4,10 @@ go 1.25.5
 
 require (
 	github.com/alextanhongpin/testdump/pkg/cuetest v0.0.0-20240617040714-9d0b95c731bd
-	github.com/alextanhongpin/testdump/pkg/diff v0.0.0-20250703151453-77514452c9aa
-	github.com/alextanhongpin/testdump/pkg/file v0.0.0-20250703151453-77514452c9aa
-	github.com/alextanhongpin/testdump/pkg/reviver v0.0.0-20250703151453-77514452c9aa
-	github.com/alextanhongpin/testdump/pkg/snapshot v0.0.0-20250703151453-77514452c9aa
+	github.com/alextanhongpin/testdump/pkg/diff v0.0.0-20260202052930-4638efcc794b
+	github.com/alextanhongpin/testdump/pkg/file v0.0.0-20260202052930-4638efcc794b
+	github.com/alextanhongpin/testdump/pkg/reviver v0.0.0-20260202052930-4638efcc794b
+	github.com/alextanhongpin/testdump/pkg/snapshot v0.0.0-20260202052930-4638efcc794b
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.2.0
 	github.com/stretchr/testify v1.7.0
