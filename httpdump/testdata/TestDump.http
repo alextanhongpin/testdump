@@ -11,4 +11,3 @@ Connection: close
 
 -- response_body.http --
 Hello, World!
-

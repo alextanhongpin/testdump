@@ -19,4 +19,3 @@ Content-Type: application/json
  "accessToken": "[REDACTED]",
  "expiresIn": "5s"
 }
-

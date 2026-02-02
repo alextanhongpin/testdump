@@ -18,5 +18,3 @@ Content-Type: application/json
 {
  "error": "bad request"
 }
-
-
