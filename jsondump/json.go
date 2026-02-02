@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -17,6 +18,8 @@ import (
 	"github.com/alextanhongpin/testdump/pkg/reviver"
 	"github.com/alextanhongpin/testdump/pkg/snapshot"
 )
+
+const UUIDPattern = `[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[1-5][a-fA-F0-9]{3}-[89abAB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}`
 
 var d *Dumper
 
@@ -95,8 +98,9 @@ func dump(t *testing.T, v any, opts ...Option) error {
 }
 
 type encoder struct {
-	byteFuncs  []func([]byte) ([]byte, error)
-	fieldFuncs []func(keys []string, val any) (any, error)
+	byteFuncs      []func([]byte) ([]byte, error)
+	fieldFuncs     []func(keys []string, val any) (any, error)
+	ignorePatterns []string
 }
 
 func (e *encoder) Marshal(v any) ([]byte, error) {
@@ -126,6 +130,11 @@ func (e *encoder) Marshal(v any) ([]byte, error) {
 }
 
 func (e *encoder) Unmarshal(b []byte) (a any, err error) {
+	for _, p := range e.ignorePatterns {
+		re := regexp.MustCompile(p)
+		b = re.ReplaceAll(b, []byte(`[IGNORE]`))
+	}
+
 	err = json.Unmarshal(b, &a)
 
 	return

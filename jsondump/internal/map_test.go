@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetValue(t *testing.T) {
+func TestLoadMapValues(t *testing.T) {
 	// Example JSON data.
 	jsonData := `{
 		"a": {
@@ -69,7 +69,7 @@ func TestGetValue(t *testing.T) {
 	}
 }
 
-func TestDeleteValue(t *testing.T) {
+func TestDeleteMapValues(t *testing.T) {
 	// Example JSON data.
 	jsonData := `{
 		"a": {

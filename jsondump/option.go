@@ -19,14 +19,15 @@ type Option func(o *options)
 
 // Define the options struct with various fields
 type options struct {
-	byteFuncs   []func([]byte) ([]byte, error)
-	cmpOpts     []cmp.Option
-	colors      bool
-	env         string // The environment variable name to overwrite the snapsnot.
-	fieldFuncs  []func(keys []string, val any) (any, error)
-	file        string // A custom file name.
-	ignorePaths []string
-	rawOutput   bool
+	byteFuncs      []func([]byte) ([]byte, error)
+	cmpOpts        []cmp.Option
+	colors         bool
+	env            string // The environment variable name to overwrite the snapsnot.
+	fieldFuncs     []func(keys []string, val any) (any, error)
+	file           string // A custom file name.
+	ignorePaths    []string
+	ignorePatterns []string
+	rawOutput      bool
 }
 
 func newOptions() *options {
@@ -52,8 +53,9 @@ func (o *options) overwrite() bool {
 
 func (o *options) encoder() *encoder {
 	return &encoder{
-		byteFuncs:  o.byteFuncs,
-		fieldFuncs: o.fieldFuncs,
+		byteFuncs:      o.byteFuncs,
+		fieldFuncs:     o.fieldFuncs,
+		ignorePatterns: o.ignorePatterns,
 	}
 }
 
@@ -93,6 +95,25 @@ func Transformers(p ...func([]byte) ([]byte, error)) Option {
 	}
 }
 
+type Validator interface {
+	Validate([]byte) error
+}
+
+func Validate(vs ...Validator) Option {
+	var funcs []func([]byte) ([]byte, error)
+	for _, v := range vs {
+		funcs = append(funcs, func(in []byte) ([]byte, error) {
+			err := v.Validate(in)
+			if err != nil {
+				return nil, err
+			}
+			return in, nil
+		})
+	}
+
+	return Transformers(funcs...)
+}
+
 // CmpOpts is an Option that adds comparison options
 func CmpOpts(opts ...cmp.Option) Option {
 	return func(o *options) {
@@ -104,6 +125,12 @@ func CmpOpts(opts ...cmp.Option) Option {
 func IgnoreFields(fields ...string) Option {
 	return func(o *options) {
 		o.cmpOpts = append(o.cmpOpts, internal.IgnoreMapEntries(fields...))
+	}
+}
+
+func IgnorePatterns(patterns ...string) Option {
+	return func(o *options) {
+		o.ignorePatterns = patterns
 	}
 }
 

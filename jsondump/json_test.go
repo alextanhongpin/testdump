@@ -2,11 +2,13 @@ package jsondump_test
 
 import (
 	"bytes"
+	"regexp"
 	"testing"
 	"time"
 
 	"github.com/alextanhongpin/testdump/jsondump"
 	"github.com/alextanhongpin/testdump/pkg/cuetest"
+	"github.com/google/uuid"
 )
 
 func TestDump(t *testing.T) {
@@ -152,25 +154,54 @@ func TestMaskPaths(t *testing.T) {
 	jsondump.Dump(t, accounts, jsondump.MaskPaths("[MASKED]", []string{"email.email"}))
 }
 
-func TestCustomTransformer(t *testing.T) {
-	jsondump.Dump(t, map[string]any{
-		"name": "John",
-	}, jsondump.Transformers(func(b []byte) ([]byte, error) {
-		return bytes.ToUpper(b), nil
+func TestTransformers_RegexpReplace(t *testing.T) {
+	type Account struct {
+		Type  string `json:"type"`
+		Email string `json:"email"`
+	}
+
+	type Accounts struct {
+		Email  Account `json:"email"`
+		Google Account `json:"google"`
+	}
+
+	accounts := Accounts{
+		Email: Account{
+			Type:  "email",
+			Email: "john.appleseed@mail.com",
+		},
+		Google: Account{
+			Type:  "google",
+			Email: "john.appleseed@gmail.com",
+		},
+	}
+
+	re := regexp.MustCompile(`[\w\.]+@\w+.com`)
+	jsondump.Dump(t, accounts, jsondump.Transformers(func(in []byte) ([]byte, error) {
+		return re.ReplaceAll(in, []byte("[MASKED]")), nil
 	}))
 }
 
-func TestMultipleTransformers(t *testing.T) {
+func TestCustomTransformer(t *testing.T) {
+	upperFunc := func(b []byte) ([]byte, error) {
+		return bytes.ToUpper(b), nil
+	}
 	jsondump.Dump(t, map[string]any{
 		"name": "John",
-	}, jsondump.Transformers(
-		func(b []byte) ([]byte, error) {
-			return bytes.ToLower(b), nil
-		},
+	}, jsondump.Transformers(upperFunc))
+}
+
+func TestMultipleTransformers(t *testing.T) {
+	lowerFunc := func(b []byte) ([]byte, error) {
+		return bytes.ToLower(b), nil
+	}
+	titleFunc :=
 		func(b []byte) ([]byte, error) {
 			return bytes.ToTitle(b), nil
-		},
-	))
+		}
+	jsondump.Dump(t, map[string]any{
+		"name": "John",
+	}, jsondump.Transformers(lowerFunc, titleFunc))
 }
 
 func TestCustomName(t *testing.T) {
@@ -260,11 +291,7 @@ name!: string & strings.MinRunes(1)`,
 		},
 	}
 
-	jsondump.Dump(t, u, jsondump.Transformers(func(b []byte) ([]byte, error) {
-		return b, c.Validate(b)
-	}),
-		jsondump.IgnoreFields("birthday"),
-	)
+	jsondump.Dump(t, u, jsondump.Validate(c), jsondump.IgnoreFields("birthday"))
 }
 
 func TestCUESchemaPath(t *testing.T) {
@@ -291,11 +318,7 @@ func TestCUESchemaPath(t *testing.T) {
 		},
 	}
 
-	jsondump.Dump(t, u, jsondump.Transformers(func(b []byte) ([]byte, error) {
-		return b, c.Validate(b)
-	}),
-		jsondump.IgnoreFields("birthday"),
-	)
+	jsondump.Dump(t, u, jsondump.Validate(c), jsondump.IgnoreFields("birthday"))
 }
 
 func TestRegistry(t *testing.T) {
@@ -335,5 +358,20 @@ func TestIgnorePathChanges(t *testing.T) {
 		u.Hobbies = append(u.Hobbies, "swimming")
 		// u.Hobbies = nil // This will fail.
 		jsondump.Dump(t, u, jsondump.IgnorePaths("Hobbies", "Age"))
+	})
+}
+
+func TestComparer_IgnorePatterns(t *testing.T) {
+	type User struct {
+		ID uuid.UUID
+	}
+
+	t.Run("field added", func(t *testing.T) {
+		u := User{ID: uuid.New()}
+
+		jsondump.Dump(t, u, jsondump.IgnorePatterns(jsondump.UUIDPattern))
+
+		u.ID = uuid.New()
+		jsondump.Dump(t, u, jsondump.IgnorePatterns(jsondump.UUIDPattern))
 	})
 }

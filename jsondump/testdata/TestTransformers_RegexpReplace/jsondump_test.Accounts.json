@@ -1,0 +1,10 @@
+{
+  "email": {
+    "email": "[MASKED]",
+    "type": "email"
+  },
+  "google": {
+    "email": "[MASKED]",
+    "type": "google"
+  }
+}
