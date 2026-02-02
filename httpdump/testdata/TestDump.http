@@ -2,8 +2,10 @@
 GET / HTTP/1.1
 Host: example.com
 
+-- request_body.http --
 -- response.http --
 HTTP/1.1 200 OK
 Connection: close
 
+-- response_body.http --
 Hello, World!

@@ -1,19 +1,24 @@
 package httpdump
 
 import (
+	"bytes"
 	"net/http"
 
 	"github.com/alextanhongpin/testdump/httpdump/internal"
 )
 
 const (
-	requestFile  = "request.http"
-	responseFile = "response.http"
+	requestFile      = "request.http"
+	requestBodyFile  = "request_body.http"
+	responseFile     = "response.http"
+	responseBodyFile = "response_body.http"
 )
 
 type HTTP struct {
-	Request  *http.Request
-	Response *http.Response
+	Request      *http.Request
+	RequestBody  []byte
+	Response     *http.Response
+	ResponseBody []byte
 }
 
 func (h *HTTP) Clone() (*HTTP, error) {
@@ -28,8 +33,10 @@ func (h *HTTP) Clone() (*HTTP, error) {
 	}
 
 	return &HTTP{
-		Request:  r,
-		Response: w,
+		Request:      r,
+		RequestBody:  bytes.Clone(h.RequestBody),
+		Response:     w,
+		ResponseBody: bytes.Clone(h.ResponseBody),
 	}, nil
 }
 

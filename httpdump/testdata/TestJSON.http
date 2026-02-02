@@ -1,9 +1,9 @@
 -- request.http --
 GET / HTTP/1.1
 Host: example.com
-Content-Length: 67
 Content-Type: application/json
 
+-- request_body.http --
 {
  "email": "john.appleseed@mail.com",
  "password": "12345678"
@@ -13,6 +13,7 @@ HTTP/1.1 400 Bad Request
 Connection: close
 Content-Type: application/json
 
+-- response_body.http --
 {
  "error": "bad request"
 }

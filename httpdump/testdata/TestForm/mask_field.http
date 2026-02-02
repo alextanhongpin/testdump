@@ -1,15 +1,16 @@
 -- request.http --
 POST / HTTP/1.1
 Host: example.com
-Content-Length: 37
 Content-Type: application/x-www-form-urlencoded
 
+-- request_body.http --
 password=%5BREDACTED%5D&username=john
 -- response.http --
 HTTP/1.1 200 OK
 Connection: close
 Content-Type: text/plain; charset=utf-8
 
+-- response_body.http --
 {
  "form": {
   "password": [

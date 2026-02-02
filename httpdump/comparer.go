@@ -25,24 +25,24 @@ func (c *comparer) Compare(a, b any) error {
 }
 
 func (c *comparer) compare(snapshot, received *HTTP) error {
-	if err := c.compareRequest(snapshot.Request, received.Request); err != nil {
+	if err := c.compareRequest(snapshot, received); err != nil {
 		return fmt.Errorf("Request: %w", err)
 	}
 
-	if err := c.compareResponse(snapshot.Response, received.Response); err != nil {
+	if err := c.compareResponse(snapshot, received); err != nil {
 		return fmt.Errorf("Response: %w", err)
 	}
 
 	return nil
 }
 
-func (c *comparer) compareRequest(snapshot, received *http.Request) error {
-	s, err := NewComparableRequest(snapshot)
+func (c *comparer) compareRequest(snapshot *HTTP, received *HTTP) error {
+	s, err := NewComparableRequest(snapshot.Request, snapshot.RequestBody)
 	if err != nil {
 		return err
 	}
 
-	r, err := NewComparableRequest(received)
+	r, err := NewComparableRequest(received.Request, received.RequestBody)
 	if err != nil {
 		return err
 	}
@@ -50,13 +50,13 @@ func (c *comparer) compareRequest(snapshot, received *http.Request) error {
 	return c.compareMessage(s, r, c.cmpOpt.Request)
 }
 
-func (c *comparer) compareResponse(snapshot, received *http.Response) error {
-	s, err := NewComparableResponse(snapshot)
+func (c *comparer) compareResponse(snapshot, received *HTTP) error {
+	s, err := NewComparableResponse(snapshot.Response, snapshot.ResponseBody)
 	if err != nil {
 		return err
 	}
 
-	r, err := NewComparableResponse(received)
+	r, err := NewComparableResponse(received.Response, received.ResponseBody)
 	if err != nil {
 		return err
 	}
@@ -115,7 +115,7 @@ func (c CompareOption) Merge(o CompareOption) CompareOption {
 	}
 }
 
-func NewComparableRequest(r *http.Request) (*Message, error) {
+func NewComparableRequest(r *http.Request, body []byte) (*Message, error) {
 	var a any
 	if r.Body != nil {
 		b, err := io.ReadAll(r.Body)
@@ -142,23 +142,15 @@ func NewComparableRequest(r *http.Request) (*Message, error) {
 	}, nil
 }
 
-func NewComparableResponse(r *http.Response) (*Message, error) {
-	b, err := io.ReadAll(r.Body)
-	if err != nil {
-		return nil, err
-	}
-	b = bytes.TrimSpace(b)
-
+func NewComparableResponse(r *http.Response, body []byte) (*Message, error) {
 	var a any
-	if json.Valid(b) {
-		if err := json.Unmarshal(b, &a); err != nil {
+	if json.Valid(body) {
+		if err := json.Unmarshal(body, &a); err != nil {
 			return nil, err
 		}
 	} else {
-		a = string(b)
+		a = string(body)
 	}
-
-	r.Body = io.NopCloser(bytes.NewReader(b))
 
 	return &Message{
 		Line:    internal.FormatResponseLine(r),
