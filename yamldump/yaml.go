@@ -14,7 +14,7 @@ import (
 	"github.com/alextanhongpin/testdump/pkg/snapshot"
 	"github.com/alextanhongpin/testdump/yamldump/internal"
 	"github.com/google/go-cmp/cmp"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 var d *Dumper
@@ -79,7 +79,18 @@ func dump(t *testing.T, v any, opts ...Option) error {
 		}
 		defer o.Close()
 
-		b, err := yaml.Marshal(v)
+		b, err := json.Marshal(v)
+		if err != nil {
+			return err
+		}
+
+		var a any
+		err = json.Unmarshal(b, &a)
+		if err != nil {
+			return err
+
+		}
+		b, err = yaml.Marshal(a)
 		if err != nil {
 			return err
 		}
