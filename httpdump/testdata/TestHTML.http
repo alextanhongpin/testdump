@@ -4,6 +4,8 @@ Host: example.com
 Content-Type: application/json
 
 -- request_body.http --
+
+
 -- response.http --
 HTTP/1.1 200 OK
 Connection: close
@@ -17,3 +19,4 @@ Content-Type: text/html
 			<button>Submit</button>
 	</form>
 </div>
+

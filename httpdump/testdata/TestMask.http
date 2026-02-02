@@ -8,6 +8,7 @@ Content-Type: application/json
  "email": "john.appleseed@mail.com",
  "password": "[REDACTED]"
 }
+
 -- response.http --
 HTTP/1.1 400 Bad Request
 Connection: close
@@ -18,3 +19,4 @@ Content-Type: application/json
  "accessToken": "[REDACTED]",
  "expiresIn": "5s"
 }
+

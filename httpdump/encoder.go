@@ -70,6 +70,7 @@ func Write(h *HTTP, pretty bool) ([]byte, error) {
 		reqBody = internal.MustPrettyBytes(reqBody)
 		resBody = internal.MustPrettyBytes(resBody)
 	}
+	reqBody = append(reqBody, '\r', '\n', '\r', '\n')
 
 	return txtar.Format(
 		&txtar.Archive{

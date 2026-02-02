@@ -3,6 +3,8 @@ GET /?q=golang&limit=20 HTTP/1.1
 Host: example.com
 
 -- request_body.http --
+
+
 -- response.http --
 HTTP/1.1 200 OK
 Connection: close
@@ -19,3 +21,5 @@ Content-Type: text/plain; charset=utf-8
   ]
  }
 }
+
+

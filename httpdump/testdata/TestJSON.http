@@ -8,6 +8,7 @@ Content-Type: application/json
  "email": "john.appleseed@mail.com",
  "password": "12345678"
 }
+
 -- response.http --
 HTTP/1.1 400 Bad Request
 Connection: close
@@ -17,3 +18,5 @@ Content-Type: application/json
 {
  "error": "bad request"
 }
+
+
