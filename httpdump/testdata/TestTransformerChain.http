@@ -5,7 +5,6 @@ Content-Type: [TWO]
 
 -- request_body.http --
 
-
 -- response.http --
 HTTP/1.1 200 OK
 Connection: close
