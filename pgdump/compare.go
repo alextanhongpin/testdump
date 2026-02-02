@@ -6,7 +6,7 @@ import (
 
 	"github.com/alextanhongpin/testdump/pkg/diff"
 	"github.com/google/go-cmp/cmp"
-	pg_query "github.com/pganalyze/pg_query_go/v4"
+	pg_query "github.com/pganalyze/pg_query_go/v6"
 )
 
 type comparer struct {
